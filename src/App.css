@@ -1,0 +1,87 @@
+.App {
+  display: flex;
+  flex-direction: row;
+  margin-top: 2vh;
+  margin-bottom: 2vh;
+  margin-right: 2vw;
+}
+
+.player-button {
+  margin-right: 20px;
+}
+
+.player-button-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2vh;
+}
+
+.status {
+  margin-top: 3vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.upload-file {
+  margin-top: 1vh;
+}
+
+.file-title {
+  margin-top: 1vh;
+}
+
+.status-h2 {
+  margin-bottom: 0vh;
+}
+
+.video-player {
+  margin-top: 3vh;
+}
+
+.half {
+  margin-left: 3vw;
+  width: 45vw;
+}
+
+.ad-editor-button {
+  margin-right: 40px;
+}
+
+.button-link {
+  background: none!important;
+  border: none;
+  padding: 0!important;
+  font-family: arial, sans-serif;
+  color: #069;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+ul {
+  columns: 2;
+  -webkit-columns: 2;
+  -moz-columns: 2;
+}
+
+@media (max-width: 800px) {
+  .App {
+      display: flex;
+      flex-direction: column;
+      margin-top: 2vh;
+      margin-bottom: 2vh;
+      margin-right: 2vw;
+  }
+
+  .half {
+      margin-left: 3vw;
+      width: 90vw;
+  }
+
+  ul {
+      columns: 1;
+  }
+
+  .ad-editor-button {
+      margin-right: 20px;
+  }
+}
