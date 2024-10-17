@@ -13,6 +13,7 @@ export const ProcessVideoDialog = (props: ProcessVideoDialogProps) => {
     const [loadingAudio, setLoadingAudio] = React.useState(false);
     const [numberOfAudioFilesGenerated, setNumberOfAudioFilesGenerated] = React.useState(0);
     const [videoProcessingProgress, setVideoProcessingProgress] = React.useState(0);
+    const [processingError, setProcessingError] = React.useState("");
 
     const resetFormState = () => {
         setVideoProcessing(false);
@@ -50,8 +51,12 @@ export const ProcessVideoDialog = (props: ProcessVideoDialogProps) => {
             }
             if (task.status === 'failed') {
                 break;
+            } else if (task.error && task.error.message) {
+                setProcessingError(task.error.message);
             }
+
             await new Promise(r => setTimeout(r, 15000));
+            setProcessingError("");
         }
         resetFormState();
         props.setVideoUrl(props.videoUrl);
@@ -79,6 +84,7 @@ export const ProcessVideoDialog = (props: ProcessVideoDialogProps) => {
                 <DialogContent>
                     <p>This can take several minutes depending on the length of the video</p>
                     {<Field validationMessage={`Video processing ${videoProcessingProgress}% complete`} validationState="none"><ProgressBar max={100} value={videoProcessingProgress} /></Field>}
+                    {processingError && <p style={{color: "red"}}>{processingError}</p>}
                 </DialogContent>
             </DialogBody>}
             {rewritingDescriptions && <DialogBody>

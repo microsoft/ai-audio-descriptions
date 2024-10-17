@@ -65,6 +65,7 @@ export interface VideoAnalysisResult {
     name: string;
     status: string;
     taskResult: any;
+    error: any;
 }
 
 export interface VideoDetails {
