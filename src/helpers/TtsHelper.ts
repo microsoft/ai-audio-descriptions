@@ -1,9 +1,9 @@
 import * as SpeechSdk from "microsoft-cognitiveservices-speech-sdk";
-import { blobSasToken, blobUri, speechRegion, speechSubscriptionKey } from "../keys";
+import { blobSasToken, blobUri, speechRegion, speechKey } from "../keys";
 import { Segment } from "../Models";
 import { uploadToBlob } from "./BlobHelper";
 
-const speechConfig: SpeechSdk.SpeechConfig = SpeechSdk.SpeechConfig.fromSubscription(speechSubscriptionKey, speechRegion);
+const speechConfig: SpeechSdk.SpeechConfig = SpeechSdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
 speechConfig.speechRecognitionLanguage = "en-US";
 speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
 

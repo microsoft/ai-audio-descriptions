@@ -1,5 +1,5 @@
 import axios from "axios";
-import { gptUrl, gptKey, computerVisionVideoDescriptionUrl, computerVisionKey } from "../keys";
+import { gptUrl, openaiKey, computerVisionVideoDescriptionUrl, computerVisionKey } from "../keys";
 import { GenerateId, convertSecondsToTimeString, delay, timeToSeconds } from "./Helper";
 import { Segment, VideoAnalysisResult } from "../Models";
 
@@ -21,7 +21,7 @@ export const createVideoAnalysisTask = async (blobUrl: string, title: string, me
             endpoint: gptUrl,
             authentication: {
               kind: "key",
-              key: gptKey
+              key: openaiKey
             }
           }
         },
@@ -169,7 +169,7 @@ const getGptOutput = async (systemMessage: string, userMessage: string): Promise
     let config = {
         headers: {
             "Content-Type": "application/json",
-            "api-key": gptKey
+            "api-key": openaiKey
         }
     }
     try {
