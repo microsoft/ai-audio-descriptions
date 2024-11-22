@@ -39,7 +39,7 @@ After cloning this repo, create a file called `.env`. Add lines in the format `k
 * `VITE_AI_SERVICES_KEY`: Can be copied from the portal.
 * `VITE_AI_SERVICES_REGION`: All one word, such as `westus` or `swedencentral`.
 * `VITE_STORAGE_ACCOUNT`: The name of the resource (not the full domain name).
-* `VITE_BLOB_SAS_TOKEN`: The full URL of the Shared Access Signiture you created above.
+* `VITE_BLOB_SAS_TOKEN`: The Shared Access Signiture created above. This should be a set of keys and values, such as: `sp=…&st=…&se=…&spr=…&sv=…&sr=…&sig=…`.
 * `VITE_GPT_DEPLOYMENT`: The name you chose when creating the deployment, such as `gpt-4o`.
 
 ### Run the App
