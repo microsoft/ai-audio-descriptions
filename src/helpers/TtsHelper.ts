@@ -43,7 +43,7 @@ export const loadAudioFilesIntoMemory = async (title: string, audioDescriptions:
         });
     }
     const urls = audioDescriptions.map((_, i) => {
-        return `${blobUri}/${STORAGE_CONTAINER_NAME}/${title}/${title}_${i}.wav?${blobSasToken}`;
+        return `${blobUri}/${STORAGE_CONTAINER_NAME}/${title}/${title}_${i}.wav`;
     });
     const promises = urls.map(url => preloadAudio(url));
     try {

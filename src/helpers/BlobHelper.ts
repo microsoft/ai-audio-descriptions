@@ -1,8 +1,8 @@
 import { BlobServiceClient, BlockBlobParallelUploadOptions } from "@azure/storage-blob";
-import { blobSasToken, blobUri, STORAGE_CONTAINER_NAME } from "../keys";
+import { blobUri, STORAGE_CONTAINER_NAME } from "../keys";
 import { SavedVideoResult } from "../Models";
 
-const blobServiceClient = new BlobServiceClient(`${blobUri}?${blobSasToken}`);
+const blobServiceClient = new BlobServiceClient(blobUri);
 
 export const uploadToBlob = async (file: any, directory: string, filename: string, setUploadPercentage: any): Promise<string> => {
     const blobName = directory + "/" + filename;
@@ -40,13 +40,13 @@ export const getUploadedVideos = async (listOptions?: any): Promise<SavedVideoRe
             };
         }
         if (blob.name.endsWith('.mp4')) {
-            blobGroups[key].videoUrl = blobContainerUrl + '/' + parts[0] + '/' + parts[0] + '.mp4?' + blobSasToken;
+            blobGroups[key].videoUrl = blobContainerUrl + '/' + parts[0] + '/' + parts[0] + '.mp4';
         }
         else if (blob.name.endsWith('details.json')) {
-            blobGroups[key].detailsJsonUrl = blobContainerUrl + '/' + parts[0] + '/details.json?' + blobSasToken;
+            blobGroups[key].detailsJsonUrl = blobContainerUrl + '/' + parts[0] + '/details.json';
         }
         else if (blob.name.endsWith('.json')) {
-            blobGroups[key].audioDescriptionJsonUrl = blobContainerUrl + '/' + parts[0] + '/' + parts[0] + '.json?' + blobSasToken;
+            blobGroups[key].audioDescriptionJsonUrl = blobContainerUrl + '/' + parts[0] + '/' + parts[0] + '.json';
         }
     }
     const allValues = Object.values(blobGroups);
