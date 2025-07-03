@@ -26,6 +26,29 @@ The below details will enable a developer to run the solution on their dev box.
 
 ### Setup Azure
 
+We provide two options for setting up your Azure environment:
+
+#### Option 1: Automated Setup (Recommended) - Zero to Hero in 5 Minutes! 🚀
+
+**Prerequisites:**
+- Azure subscription ([get a free one here](https://azure.microsoft.com/free))
+- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) installed
+
+**Steps:**
+1. Login to Azure: `az login`
+2. Run the setup script: `./deploy/setup.sh`
+3. Done! All resources are created and configured automatically.
+
+The automation creates:
+- Azure AI Services (with GPT-4o model deployment)
+- Storage Account with `audio-description` container
+- CORS configuration for local development
+- Automatic `.env` file generation
+
+#### Option 2: Manual Setup
+
+If you prefer to create resources manually:
+
 * Azure Subscription: If you don't already have one, you can [get a free Azure subscription here](https://azure.microsoft.com/free).
 * [Azure AI Services](https://learn.microsoft.com/en-us/azure/ai-services/multi-service-resource?pivots=azportal): Provides access to Azure Content Understanding, Open AI, and speech APIs. When creating the resource, select either West US, Sweden Central, or Australia East as the region.
 * [Azure Storage Account](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-create?toc=%2Fazure%2Fstorage%2Fblobs%2Ftoc.json&tabs=azure-portal): Used to store the videos. After creating the account, [create a container named "audio-description"](https://learn.microsoft.com/en-us/azure/storage/blobs/quickstart-storage-explorer#create-a-container) and generate a Shared Access Signiture for the container. You will also need to enable CORS to allow the app to retrieve data from blob storage (select CORS from the storage account settings and create a new rule: set Allowed Origins to be the URL where the app is running, Allowed Methods to get/put/options/delete, Allowed Headers to *, and Max Age 9999).
@@ -33,6 +56,10 @@ The below details will enable a developer to run the solution on their dev box.
 
 ### Configure the Solution
 
+#### If you used the automated setup:
+The `.env` file has been created automatically with all the correct values. You can skip this section.
+
+#### If you used manual setup:
 After cloning this repo, create a file called `.env`. Add lines in the format `key=value` with the following entries:
 
 * `VITE_AI_SERVICES_RESOURCE`: The name of the resource (not the full domain name).
@@ -48,6 +75,16 @@ After cloning this repo, create a file called `.env`. Add lines in the format `k
 * Make sure the `.env` file created above is in this directory too.
 * Run `npm run dev` to run the project locally.
 * The URL, such as [http://localhost:5173], will be displayed in the terminal. Visit that URL in your browser to view the app.
+
+### Cleanup Azure Resources
+
+If you used the automated setup and want to remove all Azure resources:
+
+```bash
+./deploy/cleanup.sh
+```
+
+⚠️ **Warning**: This will permanently delete all resources and data!
 
 ## Contributions Welcome
 
