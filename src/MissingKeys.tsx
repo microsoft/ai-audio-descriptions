@@ -1,5 +1,5 @@
 import { MessageBar } from "@fluentui/react-components"
-import { blobSasToken, aiServicesResource, aiServicesKey, aiServicesRegion, blobUri, gptDeployment } from "./keys";
+import { blobSasToken, aiServicesResource, aiServicesKey, aiServicesRegion, openAiResource, openAiKey, blobUri, gptDeployment } from "./keys";
 import React from "react";
 
 export const MissingKeys = () => {
@@ -9,6 +9,8 @@ export const MissingKeys = () => {
         aiServicesResource: "VITE_AI_SERVICES_RESOURCE",
         aiServicesKey: "VITE_AI_SERVICES_KEY",
         aiServicesRegion: "VITE_AI_SERVICES_REGION",
+        openAiResource: "VITE_OPENAI_RESOURCE",
+        openAiKey: "VITE_OPENAI_KEY",
         gptDeployment: "VITE_GPT_DEPLOYMENT"
     };
     const [isKeyMissing, setIsKeyMissing] = React.useState(false);
@@ -30,6 +32,12 @@ export const MissingKeys = () => {
         }
         if (!aiServicesKey || aiServicesKey === "") {
             errorKeysList.push(allKeysMap.aiServicesKey);
+        }
+        if (!openAiResource || openAiResource === "") {
+            errorKeysList.push(allKeysMap.openAiResource);
+        }
+        if (!openAiKey || openAiKey === "") {
+            errorKeysList.push(allKeysMap.openAiKey);
         }
         if (!gptDeployment || gptDeployment === "") {
             errorKeysList.push(allKeysMap.gptDeployment);

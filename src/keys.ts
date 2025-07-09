@@ -7,6 +7,21 @@ const aiServicesResource = import.meta.env.VITE_AI_SERVICES_RESOURCE;
 const aiServicesKey = import.meta.env.VITE_AI_SERVICES_KEY;
 const aiServicesRegion: string = import.meta.env.VITE_AI_SERVICES_REGION;
 
+const openAiResource = import.meta.env.VITE_OPENAI_RESOURCE;
+const openAiKey = import.meta.env.VITE_OPENAI_KEY;
+const openAiRegion: string = import.meta.env.VITE_OPENAI_REGION;
+
 const gptDeployment: string = import.meta.env.VITE_GPT_DEPLOYMENT;
 
-export { blobUri, blobSasToken, STORAGE_CONTAINER_NAME, aiServicesResource, aiServicesKey, aiServicesRegion, gptDeployment };
+export {
+	blobUri,
+	blobSasToken,
+	STORAGE_CONTAINER_NAME,
+	aiServicesResource,
+	aiServicesKey,
+	aiServicesRegion,
+	openAiResource,
+	openAiKey,
+	openAiRegion,
+	gptDeployment,
+};

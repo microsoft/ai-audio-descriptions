@@ -1,0 +1,182 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.30.3.12046",
+      "templateHash": "5920201662340084428"
+    }
+  },
+  "parameters": {
+    "resourceGroupName": {
+      "type": "string",
+      "defaultValue": "rg-ai-audio-descriptions",
+      "metadata": {
+        "description": "Name of the resource group"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "westus",
+      "allowedValues": [
+        "westus",
+        "swedencentral",
+        "australiaeast"
+      ],
+      "metadata": {
+        "description": "Location for all resources"
+      }
+    },
+    "namePrefix": {
+      "type": "string",
+      "defaultValue": "aiad",
+      "metadata": {
+        "description": "Name prefix for all resources"
+      }
+    },
+    "uniqueSuffix": {
+      "type": "string",
+      "defaultValue": "[uniqueString(subscription().subscriptionId, parameters('resourceGroupName'))]",
+      "metadata": {
+        "description": "Unique suffix for resource names"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}-ai-{1}', parameters('namePrefix'), parameters('uniqueSuffix'))]",
+      "location": "[parameters('location')]",
+      "kind": "CognitiveServices",
+      "sku": {
+        "name": "S0"
+      },
+      "properties": {
+        "apiProperties": {},
+        "customSubDomainName": "[format('{0}-ai-{1}', parameters('namePrefix'), parameters('uniqueSuffix'))]"
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}-openai-{1}', parameters('namePrefix'), parameters('uniqueSuffix'))]",
+      "location": "[parameters('location')]",
+      "kind": "OpenAI",
+      "sku": {
+        "name": "S0"
+      },
+      "properties": {
+        "customSubDomainName": "[format('{0}-openai-{1}', parameters('namePrefix'), parameters('uniqueSuffix'))]",
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}', format('{0}-openai-{1}', parameters('namePrefix'), parameters('uniqueSuffix')), 'gpt-4o')]",
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "gpt-4o",
+          "version": "2024-08-06"
+        }
+      },
+      "sku": {
+        "name": "Standard",
+        "capacity": 30
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-openai-{1}', parameters('namePrefix'), parameters('uniqueSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}storage{1}', parameters('namePrefix'), parameters('uniqueSuffix'))]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "accessTier": "Hot",
+        "allowBlobPublicAccess": true
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}', format('{0}storage{1}', parameters('namePrefix'), parameters('uniqueSuffix')), 'default')]",
+      "properties": {
+        "cors": {
+          "corsRules": [
+            {
+              "allowedOrigins": [
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "https://localhost:5173",
+                "https://localhost:3000"
+              ],
+              "allowedMethods": [
+                "GET",
+                "PUT",
+                "POST",
+                "DELETE",
+                "OPTIONS"
+              ],
+              "allowedHeaders": [
+                "*"
+              ],
+              "exposedHeaders": [
+                "*"
+              ],
+              "maxAgeInSeconds": 9999
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', format('{0}storage{1}', parameters('namePrefix'), parameters('uniqueSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', format('{0}storage{1}', parameters('namePrefix'), parameters('uniqueSuffix')), 'default', 'audio-description')]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', format('{0}storage{1}', parameters('namePrefix'), parameters('uniqueSuffix')), 'default')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "aiServicesName": {
+      "type": "string",
+      "value": "[format('{0}-ai-{1}', parameters('namePrefix'), parameters('uniqueSuffix'))]"
+    },
+    "aiServicesRegion": {
+      "type": "string",
+      "value": "[parameters('location')]"
+    },
+    "openAiAccountName": {
+      "type": "string",
+      "value": "[format('{0}-openai-{1}', parameters('namePrefix'), parameters('uniqueSuffix'))]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[format('{0}storage{1}', parameters('namePrefix'), parameters('uniqueSuffix'))]"
+    },
+    "gptDeploymentName": {
+      "type": "string",
+      "value": "gpt-4o"
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "value": "[parameters('resourceGroupName')]"
+    }
+  }
+}
