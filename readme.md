@@ -33,6 +33,7 @@ We provide two options for setting up your Azure environment:
 **Prerequisites:**
 - Azure subscription ([get a free one here](https://azure.microsoft.com/free))
 - [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) installed
+- Bash shell (Linux, macOS, or WSL on Windows)
 
 **Steps:**
 1. Login to Azure: `az login`
@@ -40,10 +41,18 @@ We provide two options for setting up your Azure environment:
 3. Done! All resources are created and configured automatically.
 
 The automation creates:
-- Azure AI Services (with GPT-4o model deployment)
-- Storage Account with `audio-description` container
-- CORS configuration for local development
-- Automatic `.env` file generation
+- **Resource Group**: `rg-ai-audio-descriptions`
+- **Azure AI Services**: Multi-service cognitive services resource with GPT-4o model deployment
+- **Storage Account**: Blob storage with `audio-description` container
+- **CORS configuration**: Enabled for local development
+- **SAS token**: Generated with 1-year validity for secure access
+- **Environment file**: Automatic `.env` file creation with all configuration
+
+**Customization:** You can modify deployment parameters in `deploy/main.parameters.json` to customize resource names, regions, and other settings.
+
+**Security:** The automation follows best practices with minimal required permissions, secure SAS tokens, and no secrets in source control.
+
+**Cost Warning:** ⚠️ The created resources will incur Azure costs. Monitor your usage in the Azure Portal to avoid unexpected charges.
 
 #### Option 2: Manual Setup
 
@@ -85,6 +94,19 @@ If you used the automated setup and want to remove all Azure resources:
 ```
 
 ⚠️ **Warning**: This will permanently delete all resources and data!
+
+### Troubleshooting
+
+**Common Issues:**
+- **Permission denied**: Ensure you have Contributor access to the Azure subscription
+- **Resource already exists**: The script handles existing resources gracefully  
+- **Region not supported**: Use one of the supported regions: `westus`, `swedencentral`, `australiaeast`
+- **Deployment timeout**: Some deployments may take 10+ minutes, especially for AI Services
+
+**Getting Help:**
+1. Check the Azure Portal for deployment status
+2. Review the script output for error messages
+3. Ensure Azure CLI is up to date: `az upgrade`
 
 ## Contributions Welcome
 
