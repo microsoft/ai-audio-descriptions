@@ -15,7 +15,7 @@ param namePrefix string = 'aiad'
 @description('Unique suffix for resource names')
 param uniqueSuffix string = uniqueString(subscription().subscriptionId, resourceGroupName)
 
-// AI Services resource
+// AI Services resource for general cognitive services (speech, vision, etc.)
 resource aiServices 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   name: '${namePrefix}-ai-${uniqueSuffix}'
   location: location
@@ -29,9 +29,23 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   }
 }
 
+// Separate Azure OpenAI account for GPT deployments
+resource openAiAccount 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+  name: '${namePrefix}-openai-${uniqueSuffix}'
+  location: location
+  kind: 'OpenAI'
+  sku: {
+    name: 'S0'
+  }
+  properties: {
+    customSubDomainName: '${namePrefix}-openai-${uniqueSuffix}'
+    publicNetworkAccess: 'Enabled'
+  }
+}
+
 // OpenAI deployment for GPT-4o
 resource gptDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
-  parent: aiServices
+  parent: openAiAccount
   name: 'gpt-4o'
   properties: {
     model: {
@@ -106,6 +120,7 @@ resource audioDescriptionContainer 'Microsoft.Storage/storageAccounts/blobServic
 // Output values for configuration
 output aiServicesName string = aiServices.name
 output aiServicesRegion string = location
+output openAiAccountName string = openAiAccount.name
 output storageAccountName string = storageAccount.name
 output gptDeploymentName string = gptDeployment.name
 output resourceGroupName string = resourceGroupName
