@@ -1,5 +1,5 @@
 @description('Name of the resource group')
-param resourceGroupName string = 'rg-ai-audio-descriptions'
+param resourceGroupName string = 'aiad'
 
 @description('Location for all resources')
 @allowed([
@@ -15,7 +15,6 @@ param namePrefix string = 'aiad'
 @description('Unique suffix for resource names')
 param uniqueSuffix string = uniqueString(subscription().subscriptionId, resourceGroupName)
 
-// AI Services resource
 resource aiServices 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   name: '${namePrefix}-ai-${uniqueSuffix}'
   location: location
@@ -29,7 +28,6 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   }
 }
 
-// OpenAI deployment for GPT-4o
 resource gptDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
   parent: aiServices
   name: 'gpt-4o'
@@ -46,7 +44,6 @@ resource gptDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05
   }
 }
 
-// Storage account
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: '${namePrefix}storage${uniqueSuffix}'
   location: location
@@ -60,7 +57,6 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
 }
 
-// Blob service
 resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
   parent: storageAccount
   name: 'default'
@@ -94,7 +90,6 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01'
   }
 }
 
-// Container for audio descriptions
 resource audioDescriptionContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
   parent: blobService
   name: 'audio-description'

@@ -48,7 +48,7 @@ The automation creates:
 - **SAS token**: Generated with 1-year validity for secure access
 - **Environment file**: Automatic `.env` file creation with all configuration
 
-**Customization:** You can modify deployment parameters in `deploy/main.parameters.json` to customize resource names, regions, and other settings.
+**Customization:** You can modify deployment parameters directly in the `deploy/setup.sh` script to customize resource names, regions, and other settings.
 
 **Security:** The automation follows best practices with minimal required permissions, secure SAS tokens, and no secrets in source control.
 
@@ -87,10 +87,10 @@ After cloning this repo, create a file called `.env`. Add lines in the format `k
 
 ### Cleanup Azure Resources
 
-If you used the automated setup and want to remove all Azure resources:
+If you used the automated setup and want to remove all Azure resources, you can delete the resource group from the Azure Portal or run:
 
 ```bash
-./deploy/cleanup.sh
+az group delete --name aiad --yes
 ```
 
 ⚠️ **Warning**: This will permanently delete all resources and data!

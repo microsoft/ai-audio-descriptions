@@ -1,14 +1,10 @@
 #!/bin/bash
 
-# AI Audio Descriptions - Automated Azure Setup Script
-# This script creates all the required Azure resources and generates the .env file
-# Prerequisites: Azure CLI installed and logged in (az login)
-
-set -e  # Exit on any error
+set -e
 
 # Configuration
-RESOURCE_GROUP_NAME="rg-ai-audio-descriptions"
-LOCATION="westus"  # Can be changed to swedencentral or australiaeast
+RESOURCE_GROUP_NAME="aiad"
+LOCATION="westus"  # Supports regions with GPT-4o availability
 NAME_PREFIX="aiad"
 
 # Colors for output
@@ -16,7 +12,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 echo -e "${BLUE}🚀 AI Audio Descriptions - Automated Azure Setup${NC}"
 echo -e "${BLUE}====================================================${NC}"
@@ -29,7 +25,7 @@ if ! command -v az &> /dev/null; then
     exit 1
 fi
 
-# Check if user is logged in
+# Ensure user is authenticated to Azure
 if ! az account show &> /dev/null; then
     echo -e "${RED}❌ You are not logged in to Azure. Please run 'az login' first.${NC}"
     exit 1
@@ -42,7 +38,7 @@ echo -e "${GREEN}✅ Logged in to Azure${NC}"
 echo -e "   Subscription: ${SUBSCRIPTION_NAME} (${SUBSCRIPTION_ID})"
 echo
 
-# Prompt for confirmation
+# Confirm deployment to avoid accidental resource creation
 echo -e "${YELLOW}⚠️  This script will create the following resources in your Azure subscription:${NC}"
 echo "   • Resource Group: ${RESOURCE_GROUP_NAME}"
 echo "   • Location: ${LOCATION}"
@@ -59,7 +55,7 @@ fi
 echo -e "${BLUE}📦 Creating Azure resources...${NC}"
 echo
 
-# Create resource group
+# Create resource group if it doesn't exist
 echo -e "${YELLOW}Creating resource group...${NC}"
 if az group show --name "$RESOURCE_GROUP_NAME" &> /dev/null; then
     echo -e "${GREEN}✅ Resource group already exists: ${RESOURCE_GROUP_NAME}${NC}"
@@ -68,7 +64,7 @@ else
     echo -e "${GREEN}✅ Created resource group: ${RESOURCE_GROUP_NAME}${NC}"
 fi
 
-# Deploy Bicep template
+# Deploy infrastructure using Bicep template
 echo -e "${YELLOW}Deploying Azure resources (this may take 5-10 minutes)...${NC}"
 DEPLOYMENT_OUTPUT=$(az deployment group create \
     --resource-group "$RESOURCE_GROUP_NAME" \
@@ -84,18 +80,18 @@ fi
 
 echo -e "${GREEN}✅ Azure resources deployed successfully!${NC}"
 
-# Extract output values
+# Extract resource information from deployment outputs
 AI_SERVICES_NAME=$(echo "$DEPLOYMENT_OUTPUT" | jq -r '.aiServicesName.value')
 AI_SERVICES_REGION=$(echo "$DEPLOYMENT_OUTPUT" | jq -r '.aiServicesRegion.value')
 STORAGE_ACCOUNT_NAME=$(echo "$DEPLOYMENT_OUTPUT" | jq -r '.storageAccountName.value')
 GPT_DEPLOYMENT_NAME=$(echo "$DEPLOYMENT_OUTPUT" | jq -r '.gptDeploymentName.value')
 
-# Get secrets using Azure CLI
+# Retrieve access keys for configuration
 echo -e "${YELLOW}Retrieving access keys...${NC}"
 AI_SERVICES_KEY=$(az cognitiveservices account keys list --name "$AI_SERVICES_NAME" --resource-group "$RESOURCE_GROUP_NAME" --query "key1" --output tsv)
 STORAGE_ACCOUNT_KEY=$(az storage account keys list --account-name "$STORAGE_ACCOUNT_NAME" --resource-group "$RESOURCE_GROUP_NAME" --query "[0].value" --output tsv)
 
-# Generate SAS token for the container (valid for 1 year)
+# Generate SAS token with minimal required permissions for 1 year
 echo -e "${YELLOW}Generating SAS token...${NC}"
 EXPIRY_DATE=$(date -u -d "1 year" '+%Y-%m-%dT%H:%MZ')
 SAS_TOKEN=$(az storage container generate-sas \
@@ -108,7 +104,7 @@ SAS_TOKEN=$(az storage container generate-sas \
 
 echo -e "${GREEN}✅ SAS token generated${NC}"
 
-# Create .env file
+# Create environment configuration file
 echo -e "${YELLOW}Creating .env file...${NC}"
 cat > .env << EOF
 # AI Audio Descriptions Environment Configuration
