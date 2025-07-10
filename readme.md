@@ -41,7 +41,7 @@ We provide two options for setting up your Azure environment:
 3. Done! All resources are created and configured automatically.
 
 The automation creates:
-- **Resource Group**: `rg-ai-audio-descriptions`
+- **Resource Group**: `aiad`
 - **Azure AI Services**: Multi-service cognitive services resource with GPT-4o model deployment
 - **Storage Account**: Blob storage with `audio-description` container
 - **CORS configuration**: Enabled for local development
@@ -94,19 +94,6 @@ az group delete --name aiad --yes
 ```
 
 ⚠️ **Warning**: This will permanently delete all resources and data!
-
-### Troubleshooting
-
-**Common Issues:**
-- **Permission denied**: Ensure you have Contributor access to the Azure subscription
-- **Resource already exists**: The script handles existing resources gracefully  
-- **Region not supported**: Use one of the supported regions: `westus`, `swedencentral`, `australiaeast`
-- **Deployment timeout**: Some deployments may take 10+ minutes, especially for AI Services
-
-**Getting Help:**
-1. Check the Azure Portal for deployment status
-2. Review the script output for error messages
-3. Ensure Azure CLI is up to date: `az upgrade`
 
 ## Contributions Welcome
 

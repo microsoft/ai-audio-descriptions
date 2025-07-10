@@ -12,10 +12,11 @@ param location string = 'westus'
 @description('Name prefix for all resources')
 param namePrefix string = 'aiad'
 
+// Unique suffix ensures globally unique resource names (required for storage accounts and AI services custom domains)
 @description('Unique suffix for resource names')
 param uniqueSuffix string = uniqueString(subscription().subscriptionId, resourceGroupName)
 
-resource aiServices 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+resource aiServices 'Microsoft.CognitiveServices/accounts@2025-01-01' = {
   name: '${namePrefix}-ai-${uniqueSuffix}'
   location: location
   kind: 'CognitiveServices'
@@ -23,12 +24,11 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
     name: 'S0'
   }
   properties: {
-    apiProperties: {}
     customSubDomainName: '${namePrefix}-ai-${uniqueSuffix}'
   }
 }
 
-resource gptDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+resource gptDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-01-01' = {
   parent: aiServices
   name: 'gpt-4o'
   properties: {
@@ -44,7 +44,7 @@ resource gptDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05
   }
 }
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
   name: '${namePrefix}storage${uniqueSuffix}'
   location: location
   sku: {
@@ -52,12 +52,11 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
   kind: 'StorageV2'
   properties: {
-    accessTier: 'Hot'
     allowBlobPublicAccess: true
   }
 }
 
-resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2025-01-01' = {
   parent: storageAccount
   name: 'default'
   properties: {
@@ -90,12 +89,9 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01'
   }
 }
 
-resource audioDescriptionContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+resource audioDescriptionContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2025-01-01' = {
   parent: blobService
   name: 'audio-description'
-  properties: {
-    publicAccess: 'None'
-  }
 }
 
 // Output values for configuration
