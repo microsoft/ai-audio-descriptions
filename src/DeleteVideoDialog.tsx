@@ -1,3 +1,4 @@
+// @ts-ignore: React import required for JSX in older configurations
 import React, { useEffect, useState } from "react";
 import { SavedVideoResult } from "./Models";
 import { getVideoName } from "./helpers/Helper";
