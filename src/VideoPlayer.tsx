@@ -23,8 +23,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
     const [currentAudio, setCurrentAudio] = React.useState<HTMLAudioElement>();
     const [isAudioOrVideoPlaying, setIsAudioOrVideoPlaying] = React.useState<boolean>();
     const [videoUploaded, setVideoUploaded] = React.useState(false);
-    const [taskId, setTaskId] = React.useState<string>("");
-    const [analyzerId, setAnalyzerId] = React.useState<string>("");
+    const [operationLocation, setOperationLocation] = React.useState<string>("");
     const [metadata, setMetadata] = React.useState("");
     const [narrationStyle, setNarrationStyle] = React.useState("");
     const [videoUrl, setVideoUrl] = React.useState("");
@@ -101,8 +100,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
         }
         else {
             const videoDetails: VideoDetails = (await axios.get(selectedVideo.detailsJsonUrl)).data;
-            setTaskId(videoDetails.taskId);
-            setAnalyzerId(videoDetails.analyzerId);
+            setOperationLocation(videoDetails.operationLocation);
             setVideoUrl(videoDetails.videoUrl);
             setMetadata(videoDetails.metadata);
             setNarrationStyle(videoDetails.narrationStyle);
@@ -231,8 +229,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
 
     const onVideoTaskCreated = (
         taskInfo: VideoDetails) => {
-        setTaskId(taskInfo.taskId);
-        setAnalyzerId(taskInfo.analyzerId);
+        setOperationLocation(taskInfo.operationLocation);
         setVideoUrl(taskInfo.videoUrl);
         setMetadata(taskInfo.metadata);
         setNarrationStyle(taskInfo.narrationStyle);
@@ -256,8 +253,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
                     title: props.title,
                     metadata: metadata,
                     narrationStyle: narrationStyle,
-                    taskId: taskId,
-                    analyzerId: analyzerId,
+                    operationLocation: operationLocation,
                     videoUrl: videoUrl
                 }}
                 setScenes={props.setScenes}

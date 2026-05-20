@@ -1,7 +1,7 @@
 import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Input, Label, ProgressBar, makeStyles } from "@fluentui/react-components"
 import { UploadDialogProps, VideoDetails } from "./Models";
 import { uploadToBlob } from "./helpers/BlobHelper";
-import { createAnalyzeFileTask, createContentUnderstandingAnalyzer } from "./helpers/ContentUnderstandingHelper";
+import { createAnalyzeFileTask } from "./helpers/ContentUnderstandingHelper";
 import React, { useState } from "react";
 
 export const useStyles = makeStyles({
@@ -75,26 +75,17 @@ export const UploadVideoDialog = (props: UploadDialogProps) => {
         }
         props.onVideoUploaded(title);
 
-        let analyzer = undefined;
         let analyzeTask = undefined;
 
         try {
-            analyzer = await createContentUnderstandingAnalyzer(title, metaData, narrationStyle);
+            analyzeTask = await createAnalyzeFileTask(blobUrl);
         }
         catch {
-            setUploadErrorMessage("failed to create content understanding analyzer");
+            setUploadErrorMessage("failed to submit video to Content Understanding for analysis");
             return;
         }
 
-        try {
-            analyzeTask = await createAnalyzeFileTask(analyzer.analyzerId, blobUrl);
-        }
-        catch {
-            setUploadErrorMessage("failed to create content understanding analyze task");
-            return;
-        }
-
-        const videoDetails: VideoDetails = { title: title, metadata: metaData, narrationStyle: narrationStyle, taskId: analyzeTask.id, analyzerId: analyzer.analyzerId, videoUrl: blobUrl };
+        const videoDetails: VideoDetails = { title: title, metadata: metaData, narrationStyle: narrationStyle, operationLocation: analyzeTask.operationLocation, videoUrl: blobUrl };
         try {
             await uploadToBlob(JSON.stringify(videoDetails), title, "details.json", null);
         }
@@ -106,9 +97,8 @@ export const UploadVideoDialog = (props: UploadDialogProps) => {
         setUploading(false);
         resetFormState();
         props.onVideoTaskCreated({
-            taskId: analyzeTask.id,
             title: title,
-            analyzerId: analyzer.analyzerId,
+            operationLocation: analyzeTask.operationLocation,
             videoUrl: blobUrl,
             metadata: metaData,
             narrationStyle: narrationStyle

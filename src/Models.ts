@@ -51,8 +51,7 @@ export interface VideoDetails {
     metadata: string;
     narrationStyle: string;
     videoUrl: string;
-    taskId: string;
-    analyzerId: string;
+    operationLocation: string;
 }
 
 export interface SavedVideoResult {

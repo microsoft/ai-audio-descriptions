@@ -6,7 +6,7 @@ import { generateAudioFiles, loadAudioFilesIntoMemory } from "./helpers/TtsHelpe
 import { getAnalyzeTaskInProgress, getAudioDescriptionsFromAnalyzeResult } from "./helpers/ContentUnderstandingHelper";
 
 export const ProcessVideoDialog = (props: ProcessVideoDialogProps) => {
-    const { title, metadata, narrationStyle, taskId, analyzerId, videoUrl } = props.videoDetails;
+    const { title, metadata, narrationStyle, operationLocation, videoUrl } = props.videoDetails;
     const [showForm, setShowForm] = React.useState(true);
     const [videoProcessing, setVideoProcessing] = React.useState(false);
     const [rewritingDescriptions, setRewritingDescriptions] = React.useState(false);
@@ -25,15 +25,15 @@ export const ProcessVideoDialog = (props: ProcessVideoDialogProps) => {
     }
 
     const handleContinue = async () => {
-        if(!taskId || !analyzerId) {
+        if(!operationLocation) {
             return;
         };
 
         setShowForm(false);
         setVideoProcessing(true);
         while (true) {
-            const task = await getAnalyzeTaskInProgress(analyzerId, taskId);
-            if (task.status?.toLowerCase() === "succeeded") {
+            const task = await getAnalyzeTaskInProgress(operationLocation);
+            if (task.status === "Succeeded" && task.result) {
                 setVideoProcessing(false);
                 setRewritingDescriptions(true);
                 const audioDescriptions = await getAudioDescriptionsFromAnalyzeResult(task.result.contents, title, metadata, narrationStyle);
@@ -49,9 +49,8 @@ export const ProcessVideoDialog = (props: ProcessVideoDialogProps) => {
                 setLoadingAudio(false);
                 break;
             }
-            const errorTask = task as any;
-            if (errorTask.error) {
-                const message = errorTask.error?.message || "An error occurred while processing the video";
+            if (task.status === "Failed" || task.error) {
+                const message = task.error?.message || "An error occurred while processing the video";
                 setProcessingError(message);
                 break;
             }
