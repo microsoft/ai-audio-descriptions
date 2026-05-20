@@ -42,7 +42,7 @@ We provide two options for setting up your Azure environment:
 
 The automation creates:
 - **Resource Group**: `aiad`
-- **Azure AI Services**: Multi-service cognitive services resource with GPT-4o model deployment
+- **Azure AI Services**: Multi-service cognitive services resource with GPT-5.5 model deployment
 - **Storage Account**: Blob storage with `audio-description` container
 - **CORS configuration**: Enabled for local development
 - **SAS token**: Generated with 1-year validity for secure access
@@ -59,9 +59,9 @@ The automation creates:
 If you prefer to create resources manually:
 
 * Azure Subscription: If you don't already have one, you can [get a free Azure subscription here](https://azure.microsoft.com/free).
-* [Azure AI Services](https://learn.microsoft.com/en-us/azure/ai-services/multi-service-resource?pivots=azportal): Provides access to Azure Content Understanding, Open AI, and speech APIs. When creating the resource, select either West US, Sweden Central, or Australia East as the region.
+* [Azure AI Services](https://learn.microsoft.com/en-us/azure/ai-services/multi-service-resource?pivots=azportal): Provides access to Azure Content Understanding, Open AI, and speech APIs. When creating the resource, select a region where GPT-5.5 is available (such as East US 2, Sweden Central, or one of the other regions allowed in `deploy/main.bicep`).
 * [Azure Storage Account](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-create?toc=%2Fazure%2Fstorage%2Fblobs%2Ftoc.json&tabs=azure-portal): Used to store the videos. After creating the account, [create a container named "audio-description"](https://learn.microsoft.com/en-us/azure/storage/blobs/quickstart-storage-explorer#create-a-container) and generate a Shared Access Signiture for the container. You will also need to enable CORS to allow the app to retrieve data from blob storage (select CORS from the storage account settings and create a new rule: set Allowed Origins to be the URL where the app is running, Allowed Methods to get/put/options/delete, Allowed Headers to *, and Max Age 9999).
-* GPT model: Go into the AI Services resource created above, and [deploy a GPT-4O model](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal#deploy-a-model).
+* GPT model: Go into the AI Services resource created above, and [deploy a GPT-5.5 model](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal#deploy-a-model).
 
 ### Configure the Solution
 
@@ -73,10 +73,10 @@ After cloning this repo, create a file called `.env`. Add lines in the format `k
 
 * `VITE_AI_SERVICES_RESOURCE`: The name of the resource (not the full domain name).
 * `VITE_AI_SERVICES_KEY`: Can be copied from the portal.
-* `VITE_AI_SERVICES_REGION`: All one word, such as `westus` or `swedencentral`.
+* `VITE_AI_SERVICES_REGION`: All one word, such as `eastus2` or `swedencentral`.
 * `VITE_STORAGE_ACCOUNT`: The name of the resource (not the full domain name).
 * `VITE_BLOB_SAS_TOKEN`: The Shared Access Signiture created above. This should be a set of keys and values, such as: `sp=…&st=…&se=…&spr=…&sv=…&sr=…&sig=…`.
-* `VITE_GPT_DEPLOYMENT`: The name you chose when creating the deployment, such as `gpt-4o`.
+* `VITE_GPT_DEPLOYMENT`: The name you chose when creating the deployment, such as `gpt-5.5`.
 
 ### Run the App
 

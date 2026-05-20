@@ -90,9 +90,9 @@ export const getAudioDescriptionsFromAnalyzeResult = async (
   // Reduce each prebuilt segment to the bits we care about for AD insertion,
   // keeping the source AudioVisualContent so we can pull key-frames later.
   const allSegmentsInTheVideo = contents.map((segment) => ({
-    source: segment as AudioVisualContent,
+    source: segment,
     isSilent: !markdownHasDialog(segment.markdown),
-    description: extractSegmentDescription(segment as AudioVisualContent),
+    description: extractSegmentDescription(segment),
   }));
 
   // Group consecutive silent segments into single silent intervals.

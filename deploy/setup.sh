@@ -42,7 +42,7 @@ echo
 echo -e "${YELLOW}⚠️  This script will create the following resources in your Azure subscription:${NC}"
 echo "   • Resource Group: ${RESOURCE_GROUP_NAME}"
 echo "   • Location: ${LOCATION}"
-echo "   • AI Services resource (with GPT-4o model deployment)"
+echo "   • AI Services resource (with GPT-5.5 model deployment)"
 echo "   • Storage Account (with audio-description container and CORS)"
 echo
 read -p "Do you want to continue? (y/N): " -n 1 -r

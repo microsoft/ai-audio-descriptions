@@ -31,10 +31,6 @@ export const getVideoNameWithoutExtension = (url: string) => {
     return filename.split('.')[0];
 }
 
-export const GenerateId = () => {
-    return crypto.randomUUID().replace(/-/g, '');
-}
-
 export const convertSecondsToTimeString = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds - hours * 3600) / 60);
