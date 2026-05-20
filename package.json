@@ -12,11 +12,9 @@
   },
   "dependencies": {
     "@azure/storage-blob": "^12.15.0",
-    "@emotion/styled": "^11.13.0",
     "@ffmpeg/ffmpeg": "^0.12.10",
     "@ffmpeg/util": "^0.12.1",
     "@fluentui/react-components": "^9.48.0",
-    "@mui/material": "^5.16.7",
     "axios": "^1.13.5",
     "microsoft-cognitiveservices-speech-sdk": "^1.36.0",
     "react": "^18.3.1",

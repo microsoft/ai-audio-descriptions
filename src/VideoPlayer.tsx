@@ -145,7 +145,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
         try {
             const data = await ffmpeg.readFile('output.mp4');
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([data], { type: 'video/mp4' }));
+            link.href = URL.createObjectURL(new Blob([data as BlobPart], { type: 'video/mp4' }));
             link.download = props.title + "_output.mp4"
             document.body.appendChild(link);
             link.click();

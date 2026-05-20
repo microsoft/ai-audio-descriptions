@@ -1,4 +1,4 @@
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
+import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } from "@fluentui/react-components";
 import { DescriptionTableProps, Segment } from "./Models"
 import React from "react"
 import { generateAudioFiles, loadAudioFilesIntoMemory } from "./helpers/TtsHelper";
@@ -141,16 +141,16 @@ export const DescriptionTable: React.FC<DescriptionTableProps> = (props) => {
                             </div>
                         </div>
                         <>
-                            <TableContainer style={{ maxHeight: "80vh" }}>
+                            <div style={{ maxHeight: "80vh", overflowY: "auto" }}>
                                 <Table>
-                                    <TableHead>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell tabIndex={0}>Start time (s)</TableCell>
-                                            <TableCell tabIndex={0}>End time (s)</TableCell>
-                                            <TableCell tabIndex={0}>Description</TableCell>
-                                            {isEdit && <TableCell tabIndex={0}>Action</TableCell>}
+                                            <TableHeaderCell tabIndex={0}>Start time (s)</TableHeaderCell>
+                                            <TableHeaderCell tabIndex={0}>End time (s)</TableHeaderCell>
+                                            <TableHeaderCell tabIndex={0}>Description</TableHeaderCell>
+                                            {isEdit && <TableHeaderCell tabIndex={0}>Action</TableHeaderCell>}
                                         </TableRow>
-                                    </TableHead>
+                                    </TableHeader>
                                     <TableBody>
                                         {rows.map((row, i) => {
                                             return (
@@ -182,7 +182,7 @@ export const DescriptionTable: React.FC<DescriptionTableProps> = (props) => {
                                         })}
                                     </TableBody>
                                 </Table>
-                            </TableContainer>
+                            </div>
                         </>
                     </>
                 )}
