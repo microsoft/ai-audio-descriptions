@@ -4,7 +4,7 @@ set -e
 
 # Configuration
 RESOURCE_GROUP_NAME="aiad"
-LOCATION="westus"  # Supports regions with GPT-4o availability
+LOCATION="eastus2"  # Default region with GPT-5.5 availability (see deploy/main.bicep for the allowed list)
 NAME_PREFIX="aiad"
 
 # Colors for output

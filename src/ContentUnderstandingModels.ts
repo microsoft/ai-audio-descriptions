@@ -22,6 +22,9 @@ export interface AudioVisualContent {
   width?: number;
   height?: number;
   fields?: Record<string, Field>;
+  // Timestamps (ms) of key frames extracted for this segment. Fetched as
+  // image bytes via GET /analyzerResults/{operationId}/files/keyframes/{ms}.
+  keyFrameTimesMs?: number[];
 }
 
 export type AnalyzerContent = AudioVisualContent;

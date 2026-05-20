@@ -1,13 +1,15 @@
 @description('Name of the resource group')
 param resourceGroupName string = 'aiad'
 
-@description('Location for all resources')
+@description('Location for all resources. Must be a region that supports GPT-5.5 in Foundry (as of mid-2026): eastus, eastus2, northcentralus, polandcentral, southcentralus, swedencentral.')
 @allowed([
-  'westus'
+  'eastus'
+  'eastus2'
+  'northcentralus'
+  'southcentralus'
   'swedencentral'
-  'australiaeast'
 ])
-param location string = 'westus'
+param location string = 'eastus2'
 
 @description('Name prefix for all resources')
 param namePrefix string = 'aiad'
@@ -30,12 +32,11 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2025-01-01' = {
 
 resource gptDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-01-01' = {
   parent: aiServices
-  name: 'gpt-4o'
+  name: 'gpt-5.5'
   properties: {
     model: {
       format: 'OpenAI'
-      name: 'gpt-4o'
-      version: '2024-08-06'
+      name: 'gpt-5.5'
     }
   }
   sku: {

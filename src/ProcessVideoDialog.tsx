@@ -36,7 +36,7 @@ export const ProcessVideoDialog = (props: ProcessVideoDialogProps) => {
             if (task.status === "Succeeded" && task.result) {
                 setVideoProcessing(false);
                 setRewritingDescriptions(true);
-                const audioDescriptions = await getAudioDescriptionsFromAnalyzeResult(task.result.contents, title, metadata, narrationStyle);
+                const audioDescriptions = await getAudioDescriptionsFromAnalyzeResult(task.result.contents, title, metadata, narrationStyle, task.id);
                 props.setScenes(audioDescriptions);
                 await uploadToBlob(JSON.stringify(audioDescriptions), title, title + ".json", null);
                 setGeneratingAudio(true);
