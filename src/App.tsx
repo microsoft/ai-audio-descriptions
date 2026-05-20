@@ -5,7 +5,6 @@ import { DescriptionTable } from './DescriptionTable';
 import { VideoPlayer } from './VideoPlayer';
 import { getUploadedVideos } from './helpers/BlobHelper';
 import { MissingKeys } from './MissingKeys';
-import microsoftLogo from './Microsoft-logo.png';
 
 function App() {
     const [scenes, setScenes] = React.useState<Segment[]>([]);
