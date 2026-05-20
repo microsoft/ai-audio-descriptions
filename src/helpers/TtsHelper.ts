@@ -3,23 +3,22 @@ import { blobUri, blobSasToken, STORAGE_CONTAINER_NAME, aiServicesRegion, aiServ
 import { Segment } from "../Models";
 import { uploadToBlob } from "./BlobHelper";
 
+// Azure Speech Dragon HD Omni voice. Released in 2026, this voice family
+// (700+ voices, expressive style library, paralinguistic tags) replaces the
+// previous JennyNeural narration. HD Omni voices auto-detect tone/emotion
+// per utterance, so we synthesize at natural rate with no SSML prosody hack
+// (v0 used `<prosody rate="+50%">` to fit descriptions into silent gaps;
+// budget-fitted writing in Step 2 now sizes descriptions to fit naturally).
+const TTS_VOICE = "en-US-Ava:DragonHDOmniLatestNeural";
+
 export const generateAudioFiles = async (scenes: Segment[], directory: string, setNumberOfAudioFilesGenerated: any) => {
     const speechConfig: SpeechSdk.SpeechConfig = SpeechSdk.SpeechConfig.fromSubscription(aiServicesKey, aiServicesRegion);
-    speechConfig.speechRecognitionLanguage = "en-US";
-    speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+    speechConfig.speechSynthesisVoiceName = TTS_VOICE;
     for (let i = 0; i < scenes.length; i++) {
-        const ssml = `
-            <speak version='1.0' xml:lang='en-US' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts'>
-                <voice name='en-US-JennyNeural'>
-                    <prosody rate="+50.00%">
-                        ${scenes[i].description}
-                    </prosody>
-                </voice>
-            </speak>`;
         const fileName = `${directory}_${i}.wav`;
         const speechSynthesizer = new SpeechSdk.SpeechSynthesizer(speechConfig, null!);
         await new Promise<void>((resolve) => {
-            speechSynthesizer.speakSsmlAsync(ssml, async (result: SpeechSdk.SpeechSynthesisResult) => {
+            speechSynthesizer.speakTextAsync(scenes[i].description, async (result: SpeechSdk.SpeechSynthesisResult) => {
                 await uploadToBlob(result.audioData, directory, fileName, null);
                 resolve();
             });
