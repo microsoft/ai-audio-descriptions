@@ -1,7 +1,5 @@
 import React, { useEffect } from "react";
-import ReactPlayer from "react-player";
 import { SavedVideoResult, Segment, VideoDetails, VideoPlayerProps } from "./Models";
-import { OnProgressProps } from "react-player/base";
 import axios from "axios";
 import { timeToSeconds } from "./helpers/Helper";
 import { UploadVideoDialog } from "./UploadVideoDialog";
@@ -66,11 +64,30 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
 
     const playPauseHandler = isAudioOrVideoPlaying ? handlePauseClick : handlePlayClick;
 
-    const playerRef = React.useRef<ReactPlayer>(null);
+    const playerRef = React.useRef<HTMLVideoElement>(null);
+
+    const { videoPlaying, setVideoPlaying } = props;
+    useEffect(() => {
+        const video = playerRef.current;
+        if (!video) {
+            return;
+        }
+        if (videoPlaying) {
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    setVideoPlaying(false);
+                    setIsAudioOrVideoPlaying(false);
+                });
+            }
+        } else {
+            video.pause();
+        }
+    }, [videoPlaying, setVideoPlaying]);
 
     const handleStopClick = () => {
         if (playerRef.current) {
-            playerRef.current.seekTo(0);
+            playerRef.current.currentTime = 0;
             handlePauseClick();
             props.setLastReadTime(-1);
             setCurrentDescription('');
@@ -160,7 +177,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
     }
 
     const readDescription = async (scenes: Segment[]) => {
-        const currentTime = playerRef.current!.getCurrentTime();
+        const currentTime = playerRef.current!.currentTime;
         if (scenes.length > 0) {
             for (let i = 0; i < scenes.length; i++) {
                 const startTime = timeToSeconds(scenes[i].startTime);
@@ -183,11 +200,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
     const playerWidth = displayWidth > 1000 ? '640px' : '90vw';
     const playerHeight = displayWidth > 1000 ? '360px' : '70vw';
 
-    const onProgress = (state: OnProgressProps) => {
+    const onProgress = (event: React.SyntheticEvent<HTMLVideoElement>) => {
         if (!props.videoPlaying) {
             return;
         }
-        const currentTime = state.playedSeconds;
+        const currentTime = event.currentTarget.currentTime;
         let descriptionTime = 0;
         for (let i = 0; i < props.scenes.length; i++) {
             const startTime = timeToSeconds(props.scenes[i].startTime);
@@ -305,7 +322,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
                             <DeleteVideoDialog video={selectedVideo} onVideoDelete={deleteVideo} />
                         </div>}
                 </div>
-                <ReactPlayer width={playerWidth} height={playerHeight} onProgress={onProgress} ref={playerRef} url={videoUrl} playing={props.videoPlaying} onEnded={handleStopClick} onReady={handleOnReady} />
+                <video
+                    ref={playerRef}
+                    src={videoUrl}
+                    style={{ width: playerWidth, height: playerHeight }}
+                    playsInline
+                    preload="metadata"
+                    onTimeUpdate={onProgress}
+                    onEnded={handleStopClick}
+                    onCanPlay={handleOnReady}
+                />
                 <p>{currentDescription}</p>
             </div>
         </>
