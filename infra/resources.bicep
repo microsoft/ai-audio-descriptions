@@ -1,7 +1,4 @@
-@description('Name of the resource group')
-param resourceGroupName string = 'aiad'
-
-@description('Location for all resources. Must be a region that supports GPT-5.5 in Foundry (as of mid-2026): eastus, eastus2, northcentralus, polandcentral, southcentralus, swedencentral.')
+@description('Location for all resources. Must support GPT-5.5 in Foundry.')
 @allowed([
   'eastus'
   'eastus2'
@@ -9,14 +6,14 @@ param resourceGroupName string = 'aiad'
   'southcentralus'
   'swedencentral'
 ])
-param location string = 'eastus2'
+param location string
 
-@description('Name prefix for all resources')
-param namePrefix string = 'aiad'
+@description('Expiration time for the development storage SAS token')
+param sasExpiration string
 
-// Unique suffix ensures globally unique resource names for storage and Foundry.
-@description('Unique suffix for resource names')
-param uniqueSuffix string = uniqueString(subscription().subscriptionId, resourceGroupName)
+var namePrefix = 'aiad'
+var uniqueSuffix = uniqueString(subscription().subscriptionId, resourceGroup().id)
+var containerName = 'audio-description'
 
 resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   name: '${namePrefix}-ai-${uniqueSuffix}'
@@ -93,12 +90,22 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2025-01-01'
 
 resource audioDescriptionContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2025-01-01' = {
   parent: blobService
-  name: 'audio-description'
+  name: containerName
 }
 
-// Output values for configuration
-output foundryName string = foundry.name
-output foundrySpeechEndpoint string = 'wss://${location}.tts.speech.microsoft.com'
-output storageAccountName string = storageAccount.name
-output gptDeploymentName string = gptDeployment.name
-output resourceGroupName string = resourceGroupName
+output VITE_FOUNDRY_RESOURCE string = foundry.name
+output VITE_FOUNDRY_SPEECH_ENDPOINT string = 'wss://${location}.tts.speech.microsoft.com'
+output VITE_GPT_DEPLOYMENT string = gptDeployment.name
+output VITE_STORAGE_ACCOUNT string = storageAccount.name
+
+@secure()
+output VITE_FOUNDRY_KEY string = foundry.listKeys().key1
+
+@secure()
+output VITE_BLOB_SAS_TOKEN string = storageAccount.listServiceSas('2025-01-01', {
+  canonicalizedResource: '/blob/${storageAccount.name}/${containerName}'
+  signedExpiry: sasExpiration
+  signedPermission: 'racwdl'
+  signedProtocol: 'https'
+  signedResource: 'c'
+}).serviceSasToken

@@ -1,0 +1,10 @@
+name: ai-audio-descriptions
+
+infra:
+  provider: bicep
+  path: infra
+
+hooks:
+  postprovision:
+    kind: js
+    run: ./infra/write-env.mjs
