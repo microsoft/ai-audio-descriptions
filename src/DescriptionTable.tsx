@@ -1,10 +1,10 @@
 import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } from "@fluentui/react-components";
 import { DescriptionTableProps, Segment } from "./Models"
 import React from "react"
-import { generateAudioFiles, loadAudioFilesIntoMemory } from "./helpers/TtsHelper";
-import { uploadToBlob } from "./helpers/BlobHelper";
+import { loadAudioFilesIntoMemory } from "./helpers/TtsHelper";
+import { updateVideoDescriptions } from "./api";
 import { timeToSeconds } from "./helpers/Helper";
-import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Field, ProgressBar } from "@fluentui/react-components";
+import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, ProgressBar } from "@fluentui/react-components";
 
 export const DescriptionTable: React.FC<DescriptionTableProps> = (props) => {
     const rows = props.scenes;
@@ -14,8 +14,7 @@ export const DescriptionTable: React.FC<DescriptionTableProps> = (props) => {
     const [showConfirmSave, setShowConfirmSave] = React.useState(false);
     const [rowsBackup, setRowsBackup] = React.useState<string>("");
     const [showAudioGenerateSpinner, setShowAudioGenerateSpinner] = React.useState(false);
-    const [numberOfAudioFilesGenerated, setNumberOfAudioFilesGenerated] = React.useState(0);
-    console.log(rows);
+    const [saveError, setSaveError] = React.useState("");
 
     const handleEdit = () => {
         setRowsBackup(JSON.stringify([...rows]));
@@ -41,15 +40,10 @@ export const DescriptionTable: React.FC<DescriptionTableProps> = (props) => {
 
     const regenerateAudioFiles = async (currentRows: Segment[]): Promise<void> => {
         props.setDescriptionAvailable(false);
-        await generateAudioFiles(currentRows, props.title, setNumberOfAudioFilesGenerated);
-        props.setScenes(currentRows);
+        const video = await updateVideoDescriptions(props.videoId, currentRows);
+        props.setScenes(video.descriptions);
         props.setDescriptionAvailable(true);
-        await loadAudioFilesIntoMemory(props.title, currentRows, props.setAudioObjects);
-        await regenerateJsonFile(currentRows);
-    }
-
-    const regenerateJsonFile = async (currentRows: Segment[]) => {
-        await uploadToBlob(JSON.stringify(currentRows), props.title, props.title + ".json", null);
+        await loadAudioFilesIntoMemory(video.audioUrls, props.setAudioObjects);
     }
 
     const handleInputChange = (e: any, index: number) => {
@@ -79,12 +73,19 @@ export const DescriptionTable: React.FC<DescriptionTableProps> = (props) => {
         setEdit(!isEdit);
         rows.sort((a, b) => timeToSeconds(a.startTime) - timeToSeconds(b.startTime));
         setRows(rows);
-        console.log("saved : ", rows);
         setDisableSave(true);
         setShowAudioGenerateSpinner(true);
-        await regenerateAudioFiles(rows);
-        setShowAudioGenerateSpinner(false);
-        setShowConfirmSave(false);
+        setSaveError("");
+        try {
+            await regenerateAudioFiles(rows);
+            setShowConfirmSave(false);
+        } catch (error) {
+            setEdit(true);
+            setDisableSave(false);
+            setSaveError(error instanceof Error ? error.message : "Unable to save descriptions.");
+        } finally {
+            setShowAudioGenerateSpinner(false);
+        }
     };
 
     if (rows.length === 0) {
@@ -101,14 +102,13 @@ export const DescriptionTable: React.FC<DescriptionTableProps> = (props) => {
                                 {showAudioGenerateSpinner && (<>
                                     <DialogTitle>{"Regenerating audio files..."}</DialogTitle>
                                     <DialogContent>
-                                        <Field validationMessage={`Audio files generated:  ${numberOfAudioFilesGenerated} of ${rows.length}`} validationState="none">
-                                            <ProgressBar value={numberOfAudioFilesGenerated} max={rows.length} />
-                                        </Field>
+                                        <ProgressBar />
                                     </DialogContent>
                                 </>)}
                                 {!showAudioGenerateSpinner && (<>
                                     <DialogTitle>{"Confirm Save"}</DialogTitle>
                                     <DialogContent>Are you sure you want to save the changes? This will regenerate all audio files.</DialogContent>
+                                    {saveError && <DialogContent style={{ color: "red" }}>{saveError}</DialogContent>}
                                     <DialogActions>
                                         <Button onClick={handleSaveYes} appearance="primary">Yes</Button>
                                         <Button onClick={handleSaveNo}>No</Button>

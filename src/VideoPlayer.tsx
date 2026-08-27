@@ -1,85 +1,100 @@
 import React, { useEffect } from "react";
-import { SavedVideoResult, Segment, VideoDetails, VideoPlayerProps } from "./Models";
-import axios from "axios";
-import { timeToSeconds } from "./helpers/Helper";
-import { UploadVideoDialog } from "./UploadVideoDialog";
-import { Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, Field, ProgressBar } from "@fluentui/react-components";
-import { loadAudioFilesIntoMemory } from "./helpers/TtsHelper";
-import { ProcessVideoDialog } from "./ProcessVideoDialog";
+import {
+    Button,
+    Dialog,
+    DialogBody,
+    DialogContent,
+    DialogSurface,
+    DialogTitle,
+    Field,
+    ProgressBar,
+} from "@fluentui/react-components";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
-import { config } from "./config";
-import { deleteBlobWithPrefix, getUploadedVideos } from "./helpers/BlobHelper";
+import { deleteVideo, getVideo } from "./api";
 import DeleteVideoDialog from "./DeleteVideoDialog";
+import { timeToSeconds } from "./helpers/Helper";
+import { loadAudioFilesIntoMemory } from "./helpers/TtsHelper";
+import {
+    Segment,
+    VideoPlayerProps,
+    VideoResource,
+    VideoSummary,
+} from "./Models";
+import { ProcessVideoDialog } from "./ProcessVideoDialog";
+import { UploadVideoDialog } from "./UploadVideoDialog";
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps) => {
+export const VideoPlayer: React.FC<VideoPlayerProps> = (props) => {
+    const {
+        setAudioObjects,
+        setDescriptionAvailable,
+        setLastReadTime,
+        setScenes,
+        setVideoPlaying,
+    } = props;
     const [openUploadDialog, setOpenUploadDialog] = React.useState(false);
     const [openProcessVideoDialog, setOpenProcessVideoDialog] = React.useState(false);
-    const [currentDescription, setCurrentDescription] = React.useState('');
-    const playPauseString = 'Play/Pause';
+    const [currentDescription, setCurrentDescription] = React.useState("");
     const [videoPlayerReady, setVideoPlayerReady] = React.useState(false);
     const [currentAudio, setCurrentAudio] = React.useState<HTMLAudioElement>();
     const [isAudioOrVideoPlaying, setIsAudioOrVideoPlaying] = React.useState<boolean>();
-    const [videoUploaded, setVideoUploaded] = React.useState(false);
-    const [operationLocation, setOperationLocation] = React.useState<string>("");
-    const [metadata, setMetadata] = React.useState("");
-    const [narrationStyle, setNarrationStyle] = React.useState("");
     const [videoUrl, setVideoUrl] = React.useState("");
     const [isPreparingForDownload, setIsPreparingForDownload] = React.useState(false);
-    const [selectedVideo, setSelectedVideo] = React.useState<SavedVideoResult>();
-    const [videos, setVideos] = React.useState<SavedVideoResult[]>([]);
+    const [selectedVideo, setSelectedVideo] = React.useState<VideoSummary>();
+    const [processingVideo, setProcessingVideo] = React.useState<VideoResource>();
+    const [continueWithoutAsking, setContinueWithoutAsking] = React.useState(false);
+    const [videos, setVideos] = React.useState<VideoSummary[]>([]);
 
     const ffmpeg = new FFmpeg();
+    const playerRef = React.useRef<HTMLVideoElement>(null);
 
-    const resetState = () => {
-        props.setScenes([]);
-        props.setAudioObjects([]);
-        props.setVideoPlaying(false);
-        props.setDescriptionAvailable(false);
-        props.setLastReadTime(-1);
-        setVideoUrl('');
+    const resetState = React.useCallback(() => {
+        setScenes([]);
+        setAudioObjects([]);
+        setVideoPlaying(false);
+        setDescriptionAvailable(false);
+        setLastReadTime(-1);
+        setVideoUrl("");
         setIsAudioOrVideoPlaying(false);
         setVideoPlayerReady(false);
-        setCurrentDescription('');
+        setCurrentDescription("");
         setIsPreparingForDownload(false);
         setSelectedVideo(undefined);
-    }
+    }, [
+        setAudioObjects,
+        setDescriptionAvailable,
+        setLastReadTime,
+        setScenes,
+        setVideoPlaying,
+    ]);
 
     useEffect(() => {
         resetState();
         setVideos(props.allVideos);
-    }, [props.allVideos]
-    );
+    }, [props.allVideos, resetState]);
 
     const handlePlayClick = () => {
         props.setVideoPlaying(true);
         setIsAudioOrVideoPlaying(true);
-    }
+    };
 
     const handlePauseClick = () => {
         props.setVideoPlaying(false);
         setIsAudioOrVideoPlaying(false);
         currentAudio?.pause();
-    }
+    };
 
-    const playPauseHandler = isAudioOrVideoPlaying ? handlePauseClick : handlePlayClick;
-
-    const playerRef = React.useRef<HTMLVideoElement>(null);
-
-    const { videoPlaying, setVideoPlaying } = props;
+    const { videoPlaying } = props;
     useEffect(() => {
         const video = playerRef.current;
         if (!video) {
             return;
         }
         if (videoPlaying) {
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(() => {
-                    setVideoPlaying(false);
-                    setIsAudioOrVideoPlaying(false);
-                });
-            }
+            void video.play().catch(() => {
+                setVideoPlaying(false);
+                setIsAudioOrVideoPlaying(false);
+            });
         } else {
             video.pause();
         }
@@ -90,205 +105,179 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
             playerRef.current.currentTime = 0;
             handlePauseClick();
             props.setLastReadTime(-1);
-            setCurrentDescription('');
+            setCurrentDescription("");
         }
     };
 
-    const handleOnReady = () => {
-        setVideoPlayerReady(true);
-    }
+    const loadReadyVideo = async (video: VideoResource) => {
+        setVideoUrl(video.videoUrl);
+        props.setScenes(video.descriptions);
+        props.setDescriptionAvailable(true);
+        await loadAudioFilesIntoMemory(video.audioUrls, props.setAudioObjects);
+    };
 
-    const loadVideoFromList = async (selectedVideo: SavedVideoResult) => {
-        if (selectedVideo.videoUrl === videoUrl) {
+    const loadVideoFromList = async (summary: VideoSummary) => {
+        const video = await getVideo(summary.id);
+        resetState();
+        props.setTitle(video.title);
+        props.setVideoId(video.id);
+        setSelectedVideo(summary);
+        setVideoUrl(video.videoUrl);
+        if (video.status === "ready") {
+            await loadReadyVideo(video);
             return;
         }
-        resetState();
-        const title = selectedVideo.videoUrl.split('?')[0].split('/')[selectedVideo.videoUrl.split('?')[0].split('/').length - 1].split('.')[0];
-        props.setTitle(title);
-        setVideoUrl(selectedVideo.videoUrl);
-        setSelectedVideo(selectedVideo);
-        if (selectedVideo.audioDescriptionJsonUrl !== '') {
-            setVideoUrl(selectedVideo.videoUrl);
-            const jsonResult = await axios.get(selectedVideo.audioDescriptionJsonUrl);
-            const audioDescriptions: any = jsonResult.data;
-            props.setScenes(audioDescriptions);
-            props.setDescriptionAvailable(true);
-            await loadAudioFilesIntoMemory(title, audioDescriptions, props.setAudioObjects);
-        }
-        else {
-            const videoDetails: VideoDetails = (await axios.get(selectedVideo.detailsJsonUrl)).data;
-            setOperationLocation(videoDetails.operationLocation);
-            setVideoUrl(videoDetails.videoUrl);
-            setMetadata(videoDetails.metadata);
-            setNarrationStyle(videoDetails.narrationStyle);
-            setOpenUploadDialog(false);
-            setVideoUploaded(false);
-            setOpenProcessVideoDialog(true);
-        }
-    }
+        setProcessingVideo(video);
+        setContinueWithoutAsking(false);
+        setOpenProcessVideoDialog(true);
+    };
 
     const download = async () => {
         setIsPreparingForDownload(true);
-        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+        const baseUrl = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
         await ffmpeg.load({
-            coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-            wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+            coreURL: await toBlobURL(`${baseUrl}/ffmpeg-core.js`, "text/javascript"),
+            wasmURL: await toBlobURL(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm"),
         });
         const ffmpegParams = [];
-        await ffmpeg.writeFile('video.mp4', await fetchFile(videoUrl));
+        await ffmpeg.writeFile("video.mp4", await fetchFile(videoUrl));
         ffmpegParams.push("-i", "video.mp4");
 
-        const fetchFilePromises = props.scenes.map((_, i) =>
-            fetchFile(`${config.storage.blobUri}/${config.storage.container}/${props.title}/${props.title}_${i}.wav?${config.storage.sasToken}`)
+        const fetchedFiles = await Promise.all(
+            props.audioObjects.map(audio => fetchFile(audio.src)),
         );
-        const fetchedFiles = await Promise.all(fetchFilePromises);
-        const ffmpegWriteAudioPromises = props.scenes.map((_, i) => {
-            ffmpegParams.push("-i", `audio_${i}.wav`);
-            return ffmpeg.writeFile(`audio_${i}.wav`, fetchedFiles[i])
-        });
-        await Promise.all(ffmpegWriteAudioPromises);
+        await Promise.all(fetchedFiles.map((audio, index) => {
+            ffmpegParams.push("-i", `audio_${index}.wav`);
+            return ffmpeg.writeFile(`audio_${index}.wav`, audio);
+        }));
 
-        let filterComplexPart1 = "";
-        let filterComplexPart2 = "[0]";
-        props.scenes.forEach((scene, i) => {
+        let delayedAudio = "";
+        let mixedAudio = "[0]";
+        props.scenes.forEach((scene, index) => {
             const delayMs = timeToSeconds(scene.startTime) * 1000;
-            filterComplexPart1 += `[${i + 1}]adelay=${delayMs}|${delayMs}[a${i}];`;
-            filterComplexPart2 += `[a${i}]`;
+            delayedAudio += `[${index + 1}]adelay=${delayMs}|${delayMs}[a${index}];`;
+            mixedAudio += `[a${index}]`;
         });
-        filterComplexPart2 += `amix=${props.scenes.length + 1}`;
+        mixedAudio += `amix=${props.scenes.length + 1}`;
 
-        ffmpegParams.push("-filter_complex", filterComplexPart1 + filterComplexPart2);
-        ffmpegParams.push("-c:v", "copy", `output.mp4`);
+        ffmpegParams.push("-filter_complex", delayedAudio + mixedAudio);
+        ffmpegParams.push("-c:v", "copy", "output.mp4");
         await ffmpeg.exec(ffmpegParams);
 
         try {
-            const data = await ffmpeg.readFile('output.mp4');
+            const data = await ffmpeg.readFile("output.mp4");
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([data as BlobPart], { type: 'video/mp4' }));
-            link.download = props.title + "_output.mp4"
+            link.href = URL.createObjectURL(new Blob([data as BlobPart], { type: "video/mp4" }));
+            link.download = `${props.title}_output.mp4`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        }
-        catch (e) {
-            console.log(e);
-        }
-        finally {
+        } finally {
             setIsPreparingForDownload(false);
         }
-    }
+    };
 
-    const readDescription = async (scenes: Segment[]) => {
+    const readDescription = (scenes: Segment[]) => {
         const currentTime = playerRef.current!.currentTime;
-        if (scenes.length > 0) {
-            for (let i = 0; i < scenes.length; i++) {
-                const startTime = timeToSeconds(scenes[i].startTime);
-                const endTime = timeToSeconds(scenes[i].endTime);
-                if (currentTime >= startTime && currentTime <= endTime) {
-                    const scene = scenes[i];
-                    setCurrentDescription(scene.description);
-                    if (props.descriptionAvailable) {
-                        props.audioObjects[i].play();
-                        setIsAudioOrVideoPlaying(true);
-                        setCurrentAudio(props.audioObjects[i]);
-                    }
-                    console.log(scene.description);
+        for (let index = 0; index < scenes.length; index++) {
+            const scene = scenes[index];
+            if (
+                currentTime >= timeToSeconds(scene.startTime)
+                && currentTime <= timeToSeconds(scene.endTime)
+            ) {
+                setCurrentDescription(scene.description);
+                if (props.descriptionAvailable) {
+                    void props.audioObjects[index].play();
+                    setIsAudioOrVideoPlaying(true);
+                    setCurrentAudio(props.audioObjects[index]);
                 }
             }
         }
-    }
-
-    const displayWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-    const playerWidth = displayWidth > 1000 ? '640px' : '90vw';
-    const playerHeight = displayWidth > 1000 ? '360px' : '70vw';
+    };
 
     const onProgress = (event: React.SyntheticEvent<HTMLVideoElement>) => {
         if (!props.videoPlaying) {
             return;
         }
         const currentTime = event.currentTarget.currentTime;
-        let descriptionTime = 0;
-        for (let i = 0; i < props.scenes.length; i++) {
-            const startTime = timeToSeconds(props.scenes[i].startTime);
-            const endTime = timeToSeconds(props.scenes[i].endTime);
-            if (currentTime >= startTime && currentTime <= endTime) {
-                descriptionTime = startTime;
-            }
+        const activeScene = props.scenes.find(scene =>
+            currentTime >= timeToSeconds(scene.startTime)
+            && currentTime <= timeToSeconds(scene.endTime));
+        if (!activeScene) {
+            return;
         }
+        const descriptionTime = timeToSeconds(activeScene.startTime);
         if (descriptionTime - props.lastReadTime > 0.1) {
             props.setLastReadTime(descriptionTime);
             readDescription(props.scenes);
         }
-    }
+    };
 
-    const deleteVideo = async (blobPrefix: string) => {
+    const handleDeleteVideo = async (id: string) => {
         resetState();
-        await deleteBlobWithPrefix(blobPrefix);
+        await deleteVideo(id);
         props.onVideoDeleted();
-    }
+    };
 
-    const onVideoUploadCancelled = () => {
+    const updateVideoSummary = (video: VideoResource) => {
+        const summary = { id: video.id, title: video.title, status: video.status };
+        setVideos(current => {
+            const remaining = current.filter(item => item.id !== video.id);
+            return [...remaining, summary].sort((left, right) => left.title.localeCompare(right.title));
+        });
+        setSelectedVideo(summary);
+    };
+
+    const handleVideoUploaded = (video: VideoResource) => {
+        props.setTitle(video.title);
+        props.setVideoId(video.id);
+        setVideoUrl(video.videoUrl);
+        setProcessingVideo(video);
+        updateVideoSummary(video);
+        setContinueWithoutAsking(true);
         setOpenUploadDialog(false);
-    }
-
-    const onVideoUploaded = async (blobPrefix: string) => {
-        const videoData = await getUploadedVideos({ prefix: blobPrefix });
-        if (videoData.length === 1) {
-            const newVideos = [...videos];
-            const existingVideoIndex = newVideos.findIndex(video => video.prefix === blobPrefix);
-            if (existingVideoIndex !== -1) {
-                newVideos[existingVideoIndex] = videoData[0];
-            } else {
-                newVideos.push(videoData[0]);
-            }
-            setVideos(newVideos);
-            setSelectedVideo(videoData[0]);
-        }
-    }
-
-    const onVideoTaskCreated = (
-        taskInfo: VideoDetails) => {
-        setOperationLocation(taskInfo.operationLocation);
-        setVideoUrl(taskInfo.videoUrl);
-        setMetadata(taskInfo.metadata);
-        setNarrationStyle(taskInfo.narrationStyle);
-        setOpenUploadDialog(false);
-        setVideoUploaded(true);
         setOpenProcessVideoDialog(true);
-    }
+    };
+
+    const handleVideoChanged = (video: VideoResource) => {
+        updateVideoSummary(video);
+        setProcessingVideo(video);
+        setContinueWithoutAsking(false);
+    };
+
+    const displayWidth = window.innerWidth
+        || document.documentElement.clientWidth
+        || document.body.clientWidth;
+    const playerWidth = displayWidth > 1000 ? "640px" : "90vw";
+    const playerHeight = displayWidth > 1000 ? "360px" : "70vw";
 
     return (
         <>
-            {openUploadDialog &&
+            {openUploadDialog && (
                 <UploadVideoDialog
                     videos={videos}
-                    onVideoUploadCancelled={onVideoUploadCancelled}
-                    onVideoUploaded={onVideoUploaded}
-                    onVideoTaskCreated={onVideoTaskCreated}
+                    onVideoUploadCancelled={() => setOpenUploadDialog(false)}
+                    onVideoUploaded={handleVideoUploaded}
                     title={props.title}
-                    setTitle={props.setTitle} />}
-            {openProcessVideoDialog && <ProcessVideoDialog
-                videoDetails={{
-                    title: props.title,
-                    metadata: metadata,
-                    narrationStyle: narrationStyle,
-                    operationLocation: operationLocation,
-                    videoUrl: videoUrl
-                }}
-                setScenes={props.setScenes}
-                setAudioObjects={props.setAudioObjects}
-                setDescriptionAvailable={props.setDescriptionAvailable}
-                setVideoUrl={setVideoUrl}
-                onVideoProcessed={onVideoUploaded}
-                setOpenProcessDialog={setOpenProcessVideoDialog}
-                scenes={props.scenes}
-                shouldContinueWithoutAsking={videoUploaded} />}
+                    setTitle={props.setTitle} />
+            )}
+            {openProcessVideoDialog && processingVideo && (
+                <ProcessVideoDialog
+                    video={processingVideo}
+                    setScenes={props.setScenes}
+                    setAudioObjects={props.setAudioObjects}
+                    setDescriptionAvailable={props.setDescriptionAvailable}
+                    setVideoUrl={setVideoUrl}
+                    onVideoChanged={handleVideoChanged}
+                    setOpenProcessDialog={setOpenProcessVideoDialog}
+                    shouldContinueWithoutAsking={continueWithoutAsking} />
+            )}
             <Dialog open={isPreparingForDownload} modalType="modal">
                 <DialogSurface>
                     <DialogBody>
                         <DialogTitle>Downloading...</DialogTitle>
                         <DialogContent>
-                            <div style={{ 'marginTop': '20px' }}>
+                            <div style={{ marginTop: "20px" }}>
                                 <ProgressBar />
                             </div>
                         </DialogContent>
@@ -300,29 +289,51 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
             <div>
                 <h2>Select a video from the list</h2>
                 {props.videoListLoading
-                    ? <div style={{ maxWidth: '20vw' }}><Field validationMessage={"Loading..."} validationState="none"><ProgressBar /></Field></div>
-                    : videos.length === 0 ? <p>No videos available.</p> : <ul>
-                        {videos.map((video, i) => {
-                            return <li key={i}>
-                                <button className="button-link" onClick={() => loadVideoFromList(video)}>{video.prefix}</button>
-                            </li>
-                        }
+                    ? (
+                        <div style={{ maxWidth: "20vw" }}>
+                            <Field validationMessage="Loading..." validationState="none">
+                                <ProgressBar />
+                            </Field>
+                        </div>
+                    )
+                    : videos.length === 0
+                        ? <p>No videos available.</p>
+                        : (
+                            <ul>
+                                {videos.map(video => (
+                                    <li key={video.id}>
+                                        <button className="button-link" onClick={() => loadVideoFromList(video)}>
+                                            {video.title}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
                         )}
-                    </ul>}
             </div>
-            <div className='video-player'>
+            <div className="video-player">
                 <h2>Video Player</h2>
-                <div className='player-button-group'>
-                    <div className='player-button'>
-                        <Button appearance="primary" onClick={playPauseHandler} disabled={!videoPlayerReady}>{playPauseString}</Button>
+                <div className="player-button-group">
+                    <div className="player-button">
+                        <Button
+                            appearance="primary"
+                            onClick={isAudioOrVideoPlaying ? handlePauseClick : handlePlayClick}
+                            disabled={!videoPlayerReady}>
+                            Play/Pause
+                        </Button>
                     </div>
-                    <div className='player-button'>
-                        <Button appearance="primary" onClick={download} disabled={props.scenes.length <= 0}>Download</Button>
+                    <div className="player-button">
+                        <Button
+                            appearance="primary"
+                            onClick={download}
+                            disabled={props.scenes.length === 0}>
+                            Download
+                        </Button>
                     </div>
-                    {selectedVideo &&
-                        <div>
-                            <DeleteVideoDialog video={selectedVideo} onVideoDelete={deleteVideo} />
-                        </div>}
+                    {selectedVideo && selectedVideo.status !== "processing" && (
+                        <DeleteVideoDialog
+                            video={selectedVideo}
+                            onVideoDelete={handleDeleteVideo} />
+                    )}
                 </div>
                 <video
                     ref={playerRef}
@@ -332,7 +343,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
                     preload="metadata"
                     onTimeUpdate={onProgress}
                     onEnded={handleStopClick}
-                    onCanPlay={handleOnReady}
+                    onCanPlay={() => setVideoPlayerReady(true)}
                 />
                 <p>{currentDescription}</p>
             </div>

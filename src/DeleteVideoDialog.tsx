@@ -1,26 +1,14 @@
-import { useEffect, useState } from "react";
-import { SavedVideoResult } from "./Models";
-import { getVideoName } from "./helpers/Helper";
+import { VideoSummary } from "./Models";
 import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger } from "@fluentui/react-components";
 import { DeleteRegular } from "@fluentui/react-icons";
 
 const DeleteVideoDialog = (props: {
-    video: SavedVideoResult,
-    onVideoDelete: (videoFileBlobPrefix: string) => void
+    video: VideoSummary,
+    onVideoDelete: (id: string) => void
 }) => {
-    const [videoName, setVideoName] = useState("");
-    const [deleteVideoAriaLabel, setDeleteVideoAriaLabel] = useState("");
-    const [deleteVideoMessage, setDeleteVideoMessage] = useState("");
-
-    useEffect(() => {
-        if (props.video && props.video.videoUrl) {
-            const videoName = getVideoName(props.video.videoUrl);
-            setVideoName(videoName);
-            setDeleteVideoAriaLabel("Delete " + videoName);
-            setDeleteVideoMessage("Are you sure you want to delete video file " + videoName + " and its video description result files?");
-        }
-    }, [props.video]
-    );
+    const videoName = props.video.title;
+    const deleteVideoAriaLabel = "Delete " + videoName;
+    const deleteVideoMessage = "Are you sure you want to delete video file " + videoName + " and its video description result files?";
 
     return (
         <>
@@ -41,7 +29,7 @@ const DeleteVideoDialog = (props: {
                             <Button
                                 aria-label={"Continue to delete " + videoName}
                                 appearance="primary"
-                                onClick={() => { props.onVideoDelete(props.video.prefix) }}>
+                                onClick={() => { props.onVideoDelete(props.video.id) }}>
                                 OK
                             </Button>
                         </DialogActions>

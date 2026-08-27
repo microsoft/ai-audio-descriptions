@@ -3,13 +3,14 @@ export interface VideoPlayerProps {
     setScenes: any;
     lastReadTime: number;
     setLastReadTime: any;
-    allVideos: SavedVideoResult[];
+    allVideos: VideoSummary[];
     videoPlaying: boolean;
     setVideoPlaying: any;
     descriptionAvailable: boolean;
     setDescriptionAvailable: any;
     title: string;
     setTitle: any;
+    setVideoId: any;
     videoListLoading: boolean;
     audioObjects: HTMLAudioElement[];
     setAudioObjects: any;
@@ -21,48 +22,56 @@ export interface DescriptionTableProps {
     setScenes: any;
     descriptionAvailable: boolean;
     setDescriptionAvailable: any;
-    title: string;
+    videoId: string;
     setAudioObjects: any;
 }
 
 export interface UploadDialogProps {
-    videos: SavedVideoResult[];
+    videos: VideoSummary[];
     onVideoUploadCancelled: () => void;
-    onVideoUploaded: (blobPrefix: string) => void
-    onVideoTaskCreated: (taskInfo: VideoDetails) => void
+    onVideoUploaded: (video: VideoResource) => void
     title: string;
     setTitle: any;
 }
 
 export interface ProcessVideoDialogProps {
     setOpenProcessDialog: any;
-    videoDetails: VideoDetails
+    video: VideoResource;
     setScenes: any;
     setAudioObjects: any;
     setDescriptionAvailable: any;
     setVideoUrl: any;
-    scenes: Segment[];
     shouldContinueWithoutAsking: boolean;
-    onVideoProcessed: (blobPrefix: string) => void;
+    onVideoChanged: (video: VideoResource) => void;
 }
 
-export interface VideoDetails {
+export type VideoStatus = "uploaded" | "processing" | "ready" | "failed";
+export type ProcessingStage = "analyzing" | "describing" | "synthesizing";
+
+export interface VideoSummary {
+    id: string;
     title: string;
+    status: VideoStatus;
+}
+
+export interface VideoResource extends VideoSummary {
     metadata: string;
     narrationStyle: string;
     videoUrl: string;
-    operationLocation: string;
-}
-
-export interface SavedVideoResult {
-    prefix: string;
-    videoUrl: string;
-    audioDescriptionJsonUrl: string;
-    detailsJsonUrl: string;
+    audioUrls: string[];
+    descriptions: Segment[];
+    audioGenerated: number;
+    stage?: ProcessingStage;
+    error?: string;
 }
 
 export interface Segment {
     startTime: string;
     endTime: string;
     description: string;
+}
+
+export interface CreateVideoResult {
+    video: VideoResource;
+    uploadUrl: string;
 }

@@ -8,12 +8,14 @@
 ])
 param location string
 
-@description('Expiration time for the development storage SAS token')
-param sasExpiration string
+@description('Object ID of the developer running the application')
+param principalId string
 
 var namePrefix = 'aiad'
 var uniqueSuffix = uniqueString(subscription().subscriptionId, resourceGroup().id)
 var containerName = 'audio-description'
+var foundryUserRoleId = '53ca6127-db72-4b80-b1b0-d745d6d5456d'
+var storageBlobDataContributorRoleId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
 
 resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   name: '${namePrefix}-ai-${uniqueSuffix}'
@@ -24,6 +26,7 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   }
   properties: {
     customSubDomainName: '${namePrefix}-ai-${uniqueSuffix}'
+    disableLocalAuth: true
   }
 }
 
@@ -51,7 +54,8 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
   }
   kind: 'StorageV2'
   properties: {
-    allowBlobPublicAccess: true
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
   }
 }
 
@@ -71,8 +75,7 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2025-01-01'
           allowedMethods: [
             'GET'
             'PUT'
-            'POST'
-            'DELETE'
+            'HEAD'
             'OPTIONS'
           ]
           allowedHeaders: [
@@ -93,19 +96,27 @@ resource audioDescriptionContainer 'Microsoft.Storage/storageAccounts/blobServic
   name: containerName
 }
 
-output VITE_FOUNDRY_RESOURCE string = foundry.name
-output VITE_FOUNDRY_SPEECH_ENDPOINT string = 'wss://${location}.tts.speech.microsoft.com'
-output VITE_GPT_DEPLOYMENT string = gptDeployment.name
-output VITE_STORAGE_ACCOUNT string = storageAccount.name
+resource foundryUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(foundry.id, principalId, foundryUserRoleId)
+  scope: foundry
+  properties: {
+    principalId: principalId
+    principalType: 'User'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', foundryUserRoleId)
+  }
+}
 
-@secure()
-output VITE_FOUNDRY_KEY string = foundry.listKeys().key1
+resource storageBlobDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, principalId, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    principalId: principalId
+    principalType: 'User'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
+  }
+}
 
-@secure()
-output VITE_BLOB_SAS_TOKEN string = storageAccount.listServiceSas('2025-01-01', {
-  canonicalizedResource: '/blob/${storageAccount.name}/${containerName}'
-  signedExpiry: sasExpiration
-  signedPermission: 'racwdl'
-  signedProtocol: 'https'
-  signedResource: 'c'
-}).serviceSasToken
+output FOUNDRY_RESOURCE string = foundry.name
+output FOUNDRY_RESOURCE_ID string = foundry.id
+output GPT_DEPLOYMENT string = gptDeployment.name
+output STORAGE_ACCOUNT string = storageAccount.name

@@ -30,7 +30,8 @@ The app needs:
 
 - A Microsoft Foundry resource for Content Understanding, GPT, and Speech, with a GPT 5 deployment.
 - An Azure Storage account with an `audio-description` blob container and CORS enabled for local development.
-- A `.env` file containing the resource configuration and credentials used by the web app.
+- Microsoft Entra access to the Foundry and Storage resources.
+- A `.env` file containing the non-secret resource configuration used by the local API.
 
 You can create and configure these manually, or use the included Azure Developer CLI configuration to automate the complete setup.
 
@@ -38,6 +39,7 @@ You can create and configure these manually, or use the included Azure Developer
 
 - Azure subscription ([get a free one here](https://azure.microsoft.com/free))
 - [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)
+- [Node.js](https://nodejs.org/) 20.19 or later
 
 #### Provision
 
@@ -53,14 +55,14 @@ You can create and configure these manually, or use the included Azure Developer
    azd provision
    ```
 
-The first provision prompts for an environment name, subscription, and location. It then creates and configures the Foundry and Storage resources and writes the required `.env` file.
+The first provision prompts for an environment name, subscription, and location. It then creates and configures the Foundry and Storage resources, grants the signed-in developer access, and writes the required `.env` file. Creating the role assignments requires Owner or User Access Administrator access to the subscription.
 
 **Cost Warning:** ⚠️ The created resources will incur Azure costs. Monitor your usage in the Azure Portal to avoid unexpected charges.
 
 ### Run the App
 
 * In the project directory, run `npm install` to install required packages.
-* Run `npm run dev` to run the project locally.
+* Run `npm run dev` to run the web app and its local API.
 * The URL, such as [http://localhost:5173], will be displayed in the terminal. Visit that URL in your browser to view the app.
 
 ### Cleanup Azure Resources

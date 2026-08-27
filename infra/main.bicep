@@ -6,8 +6,8 @@ param environmentName string
 @description('Azure region for the deployment')
 param location string
 
-@description('Expiration time for the development storage SAS token')
-param sasExpiration string = dateTimeAdd(utcNow(), 'P1Y')
+@description('Object ID of the developer running the application')
+param principalId string
 
 var resourceGroupName = 'rg-aiad-${environmentName}'
 
@@ -24,18 +24,12 @@ module resources './resources.bicep' = {
   scope: resourceGroup
   params: {
     location: location
-    sasExpiration: sasExpiration
+    principalId: principalId
   }
 }
 
 output AZURE_RESOURCE_GROUP string = resourceGroup.name
-output VITE_FOUNDRY_RESOURCE string = resources.outputs.VITE_FOUNDRY_RESOURCE
-output VITE_FOUNDRY_SPEECH_ENDPOINT string = resources.outputs.VITE_FOUNDRY_SPEECH_ENDPOINT
-output VITE_GPT_DEPLOYMENT string = resources.outputs.VITE_GPT_DEPLOYMENT
-output VITE_STORAGE_ACCOUNT string = resources.outputs.VITE_STORAGE_ACCOUNT
-
-@secure()
-output VITE_FOUNDRY_KEY string = resources.outputs.VITE_FOUNDRY_KEY
-
-@secure()
-output VITE_BLOB_SAS_TOKEN string = resources.outputs.VITE_BLOB_SAS_TOKEN
+output FOUNDRY_RESOURCE string = resources.outputs.FOUNDRY_RESOURCE
+output FOUNDRY_RESOURCE_ID string = resources.outputs.FOUNDRY_RESOURCE_ID
+output GPT_DEPLOYMENT string = resources.outputs.GPT_DEPLOYMENT
+output STORAGE_ACCOUNT string = resources.outputs.STORAGE_ACCOUNT

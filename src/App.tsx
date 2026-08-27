@@ -1,25 +1,25 @@
 import React from 'react';
 import './App.css';
-import { SavedVideoResult, Segment } from './Models';
+import { Segment, VideoSummary } from './Models';
 import { DescriptionTable } from './DescriptionTable';
 import { VideoPlayer } from './VideoPlayer';
-import { getUploadedVideos } from './helpers/BlobHelper';
-import { MissingConfiguration } from './MissingConfiguration';
+import { getVideos } from './api';
 
 function App() {
     const [scenes, setScenes] = React.useState<Segment[]>([]);
     const [lastReadTime, setLastReadTime] = React.useState(-1);
     const [savedVideoListLoading, setSavedVideoListLoading] = React.useState(true);
-    const [allVideos, setAllVideos] = React.useState<SavedVideoResult[]>([]);
+    const [allVideos, setAllVideos] = React.useState<VideoSummary[]>([]);
     const [videoPlaying, setVideoPlaying] = React.useState(false);
     const [descriptionAvailable, setDescriptionAvailable] = React.useState(false);
     const [title, setTitle] = React.useState("");
+    const [videoId, setVideoId] = React.useState("");
     const [audioObjects, setAudioObjects] = React.useState<HTMLAudioElement[]>([]);
 
     const loadAllDescribedVideos = async () => {
-        let allVideos: SavedVideoResult[] = [];
+        let allVideos: VideoSummary[] = [];
         try {
-            allVideos = await getUploadedVideos();
+            allVideos = await getVideos();
         }
         catch (error) {
             console.error(error);
@@ -44,7 +44,6 @@ function App() {
             <h1>Microsoft AI Audio Descriptions</h1>
             <div className="container">
                 <div className='half'>
-                    <MissingConfiguration />
                     <VideoPlayer
                         scenes={scenes}
                         setScenes={setScenes}
@@ -57,6 +56,7 @@ function App() {
                         setDescriptionAvailable={setDescriptionAvailable}
                         title={title}
                         setTitle={setTitle}
+                        setVideoId={setVideoId}
                         videoListLoading={savedVideoListLoading}
                         audioObjects={audioObjects}
                         setAudioObjects={setAudioObjects}
@@ -69,7 +69,7 @@ function App() {
                         setScenes={setScenes}
                         descriptionAvailable={descriptionAvailable}
                         setDescriptionAvailable={setDescriptionAvailable}
-                        title={title}
+                        videoId={videoId}
                         setAudioObjects={setAudioObjects}
                     />
                 </div>

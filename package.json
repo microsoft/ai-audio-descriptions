@@ -4,33 +4,43 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently --kill-others \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "tsx --env-file=.env server/index.ts",
+    "dev:web": "wait-on tcp:127.0.0.1:3001 && vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "preview": "vite preview"
+    "preview": "concurrently --kill-others \"npm:dev:server\" \"npm:preview:web\"",
+    "preview:web": "wait-on tcp:127.0.0.1:3001 && vite preview"
   },
   "dependencies": {
+    "@azure/identity": "4.12.0",
     "@azure/storage-blob": "^12.15.0",
     "@ffmpeg/ffmpeg": "^0.12.10",
     "@ffmpeg/util": "^0.12.1",
     "@fluentui/react-components": "^9.48.0",
     "axios": "^1.13.5",
+    "express": "^5.1.0",
     "microsoft-cognitiveservices-speech-sdk": "^1.36.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.6.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^7.0.3"
+    "vite": "^7.0.3",
+    "wait-on": "^8.0.4"
   }
 }

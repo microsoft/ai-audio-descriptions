@@ -1,12 +1,10 @@
 import { writeFile } from "node:fs/promises";
 
 const variableNames = [
-    "VITE_FOUNDRY_RESOURCE",
-    "VITE_FOUNDRY_KEY",
-    "VITE_FOUNDRY_SPEECH_ENDPOINT",
-    "VITE_GPT_DEPLOYMENT",
-    "VITE_STORAGE_ACCOUNT",
-    "VITE_BLOB_SAS_TOKEN",
+    "FOUNDRY_RESOURCE",
+    "FOUNDRY_RESOURCE_ID",
+    "GPT_DEPLOYMENT",
+    "STORAGE_ACCOUNT",
 ];
 
 const missingVariables = variableNames.filter((name) => !process.env[name]);

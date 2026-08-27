@@ -1,10 +1,9 @@
 import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Input, Label, ProgressBar, makeStyles } from "@fluentui/react-components"
-import { UploadDialogProps, VideoDetails } from "./Models";
-import { uploadToBlob } from "./helpers/BlobHelper";
-import { createAnalyzeFileTask } from "./helpers/ContentUnderstandingHelper";
+import { UploadDialogProps } from "./Models";
+import { completeVideoUpload, createVideo, uploadVideo } from "./api";
 import React, { useState } from "react";
 
-export const useStyles = makeStyles({
+const useStyles = makeStyles({
     content: {
         display: "flex",
         flexDirection: "column",
@@ -54,16 +53,22 @@ export const UploadVideoDialog = (props: UploadDialogProps) => {
             alert("Title is not specified");
             return;
         }
-        const index = props.videos.findIndex(x => x.prefix === title);
-        if (index >= 0) {
+        if (props.videos.some(video => video.title === title)) {
             alert("There is already an existing video file that has the same title, please use a different title.");
             return;
         }
         setShowForm(false);
         setUploading(true);
-        let blobUrl = '';
         try {
-            blobUrl = await uploadToBlob(file!, title, title + ".mp4", setUploadPercentage);
+            const result = await createVideo(title, metaData, narrationStyle);
+            await uploadVideo(result.uploadUrl, file, setUploadPercentage);
+            const video = await completeVideoUpload(
+                result.video.id,
+                title,
+                metaData,
+                narrationStyle,
+            );
+            props.onVideoUploaded(video);
         }
         catch (e: any) {
             let errorMessage = "Failed to upload."
@@ -73,36 +78,8 @@ export const UploadVideoDialog = (props: UploadDialogProps) => {
             setUploadErrorMessage(errorMessage);
             return;
         }
-        props.onVideoUploaded(title);
-
-        let analyzeTask = undefined;
-
-        try {
-            analyzeTask = await createAnalyzeFileTask(blobUrl);
-        }
-        catch {
-            setUploadErrorMessage("failed to submit video to Content Understanding for analysis");
-            return;
-        }
-
-        const videoDetails: VideoDetails = { title: title, metadata: metaData, narrationStyle: narrationStyle, operationLocation: analyzeTask.operationLocation, videoUrl: blobUrl };
-        try {
-            await uploadToBlob(JSON.stringify(videoDetails), title, "details.json", null);
-        }
-        catch {
-            setUploadErrorMessage("failed to save video task details to blob storage.");
-            return;
-        }
-
         setUploading(false);
         resetFormState();
-        props.onVideoTaskCreated({
-            title: title,
-            operationLocation: analyzeTask.operationLocation,
-            videoUrl: blobUrl,
-            metadata: metaData,
-            narrationStyle: narrationStyle
-        });
     }
 
     const handleUploadError = () => {

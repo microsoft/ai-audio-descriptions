@@ -1,122 +1,150 @@
-import { ProcessVideoDialogProps } from "./Models";
 import React, { useEffect } from "react";
-import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Field, ProgressBar } from "@fluentui/react-components";
-import { uploadToBlob } from "./helpers/BlobHelper";
-import { generateAudioFiles, loadAudioFilesIntoMemory } from "./helpers/TtsHelper";
-import { getAnalyzeTaskInProgress, getAudioDescriptionsFromAnalyzeResult } from "./helpers/ContentUnderstandingHelper";
+import {
+    Button,
+    Dialog,
+    DialogActions,
+    DialogBody,
+    DialogContent,
+    DialogSurface,
+    DialogTitle,
+    Field,
+    ProgressBar,
+} from "@fluentui/react-components";
+import { getVideo, startVideoProcessing } from "./api";
+import { ProcessVideoDialogProps, VideoResource } from "./Models";
+import { loadAudioFilesIntoMemory } from "./helpers/TtsHelper";
+
+const stageLabel = (video: VideoResource): string => {
+    if (video.stage === "describing") {
+        return "Writing audio descriptions";
+    }
+    if (video.stage === "synthesizing") {
+        return "Generating audio";
+    }
+    return "Analyzing video";
+};
 
 export const ProcessVideoDialog = (props: ProcessVideoDialogProps) => {
-    const { title, metadata, narrationStyle, operationLocation, videoUrl } = props.videoDetails;
-    const [showForm, setShowForm] = React.useState(true);
-    const [videoProcessing, setVideoProcessing] = React.useState(false);
-    const [rewritingDescriptions, setRewritingDescriptions] = React.useState(false);
-    const [generatingAudio, setGeneratingAudio] = React.useState(false);
-    const [loadingAudio, setLoadingAudio] = React.useState(false);
-    const [numberOfAudioFilesGenerated, setNumberOfAudioFilesGenerated] = React.useState(0);
-    const [processingError, setProcessingError] = React.useState("");
+    const {
+        onVideoChanged,
+        setAudioObjects,
+        setDescriptionAvailable,
+        setOpenProcessDialog,
+        setScenes,
+        setVideoUrl,
+    } = props;
+    const [video, setVideo] = React.useState(props.video);
+    const [showForm, setShowForm] = React.useState(
+        props.video.status === "uploaded" || props.video.status === "failed",
+    );
+    const [processingError, setProcessingError] = React.useState(props.video.error ?? "");
+    const started = React.useRef(false);
 
-    const resetFormState = () => {
-        setVideoProcessing(false);
-        setShowForm(true);
-        setGeneratingAudio(false);
-        setLoadingAudio(false);
-        setRewritingDescriptions(false);
-        setNumberOfAudioFilesGenerated(0);
-    }
-
-    const handleContinue = async () => {
-        if(!operationLocation) {
-            return;
-        };
-
-        setShowForm(false);
-        setVideoProcessing(true);
+    const monitorProcessing = React.useCallback(async () => {
         while (true) {
-            const task = await getAnalyzeTaskInProgress(operationLocation);
-            if (task.status === "Succeeded" && task.result) {
-                setVideoProcessing(false);
-                setRewritingDescriptions(true);
-                const audioDescriptions = await getAudioDescriptionsFromAnalyzeResult(task.result.contents, title, metadata, narrationStyle, task.id);
-                props.setScenes(audioDescriptions);
-                await uploadToBlob(JSON.stringify(audioDescriptions), title, title + ".json", null);
-                setGeneratingAudio(true);
-                setRewritingDescriptions(false);
-                await generateAudioFiles(audioDescriptions, title, setNumberOfAudioFilesGenerated);
-                setGeneratingAudio(false);
-                setLoadingAudio(true);
-                props.setDescriptionAvailable(true);
-                await loadAudioFilesIntoMemory(title, audioDescriptions, props.setAudioObjects);
-                setLoadingAudio(false);
-                break;
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            const latestVideo = await getVideo(video.id);
+            setVideo(latestVideo);
+            onVideoChanged(latestVideo);
+            if (latestVideo.status === "failed") {
+                setProcessingError(latestVideo.error ?? "Video processing failed.");
+                return;
             }
-            if (task.status === "Failed" || task.error) {
-                const message = task.error?.message || "An error occurred while processing the video";
-                setProcessingError(message);
-                break;
+            if (latestVideo.status === "ready") {
+                setScenes(latestVideo.descriptions);
+                setDescriptionAvailable(true);
+                setVideoUrl(latestVideo.videoUrl);
+                await loadAudioFilesIntoMemory(latestVideo.audioUrls, setAudioObjects);
+                setOpenProcessDialog(false);
+                return;
             }
-
-            await new Promise(r => setTimeout(r, 15000));
-            setProcessingError("");
         }
-        resetFormState();
-        props.setVideoUrl(videoUrl);
-        props.onVideoProcessed(title);
-        props.setOpenProcessDialog(false);
-    }
+    }, [
+        onVideoChanged,
+        setAudioObjects,
+        setDescriptionAvailable,
+        setOpenProcessDialog,
+        setScenes,
+        setVideoUrl,
+        video.id,
+    ]);
+
+    const handleContinue = React.useCallback(async () => {
+        if (started.current) {
+            return;
+        }
+        started.current = true;
+        setShowForm(false);
+        setProcessingError("");
+        try {
+            await startVideoProcessing(video.id);
+            const processingVideo = { ...video, status: "processing", stage: "analyzing" } as VideoResource;
+            setVideo(processingVideo);
+            onVideoChanged(processingVideo);
+            await monitorProcessing();
+        } catch (error) {
+            setProcessingError(error instanceof Error ? error.message : "Unable to start processing.");
+        }
+    }, [monitorProcessing, onVideoChanged, video]);
 
     useEffect(() => {
-        if (props.shouldContinueWithoutAsking) {
-            handleContinue();
+        if (started.current) {
+            return;
         }
-    }, [props.shouldContinueWithoutAsking]);
+        if (props.shouldContinueWithoutAsking) {
+            void handleContinue();
+        } else if (video.status === "processing") {
+            started.current = true;
+            void startVideoProcessing(video.id)
+                .then(monitorProcessing)
+                .catch(error => {
+                    setProcessingError(
+                        error instanceof Error ? error.message : "Unable to resume processing.",
+                    );
+                });
+        }
+    }, [
+        handleContinue,
+        monitorProcessing,
+        props.shouldContinueWithoutAsking,
+        video.id,
+        video.status,
+    ]);
 
-    return <>
-    <Dialog open={true} modalType="modal">
-        <DialogSurface>
-            { showForm && <DialogBody>
-                <DialogTitle>Do you wish to continue processing this video?</DialogTitle>
-                <DialogActions>
-                    <Button appearance="secondary" onClick={() => props.setOpenProcessDialog(false)}>Cancel</Button>
-                    <Button type="submit" appearance="primary" onClick={handleContinue}>Yes</Button>
-                </DialogActions>
-            </DialogBody>}
-            {videoProcessing && <DialogBody>
-                <DialogTitle tabIndex={0}>Processing Video</DialogTitle>
-                <DialogContent tabIndex={0}>
-                    {<ProgressBar title="This can take several minutes depending on the length of the video" />}
-                    {processingError && <p style={{color: "red"}}>{processingError}</p>}
-                </DialogContent>
-                <DialogActions>
-                    <Button appearance="secondary" onClick={() => props.setOpenProcessDialog(false)}>Cancel</Button>
-                </DialogActions>
-            </DialogBody>}
-            {rewritingDescriptions && <DialogBody>
-                <DialogTitle>Rewriting descriptions to fit silent intervals</DialogTitle>
-                <DialogContent>
-                    {<ProgressBar />}
-                </DialogContent>
-                <DialogActions>
-                    <Button appearance="secondary" onClick={() => props.setOpenProcessDialog(false)}>Cancel</Button>
-                </DialogActions>
-            </DialogBody>}
-            {generatingAudio && <DialogBody>
-                <DialogTitle>Generating audio</DialogTitle>
-                <DialogContent>
-                    <Field validationMessage={`Audio files generated:  ${numberOfAudioFilesGenerated} of ${props.scenes.length}`} validationState="none">
-                        <ProgressBar max={props.scenes.length} value={numberOfAudioFilesGenerated}/>
-                    </Field>
-                </DialogContent>
-                <DialogActions>
-                    <Button appearance="secondary" onClick={() => props.setOpenProcessDialog(false)}>Cancel</Button>
-                </DialogActions>
-            </DialogBody>}
-            {loadingAudio && <DialogBody>
-                <DialogTitle>Preparing video player...</DialogTitle>
-                <DialogContent>
-                    <ProgressBar />
-                </DialogContent>
-            </DialogBody>}
-        </DialogSurface>
-    </Dialog>
-</>
-}
+    return (
+        <Dialog open={true} modalType="modal">
+            <DialogSurface>
+                {showForm && (
+                    <DialogBody>
+                        <DialogTitle>Do you wish to continue processing this video?</DialogTitle>
+                        <DialogActions>
+                            <Button appearance="secondary" onClick={() => setOpenProcessDialog(false)}>Cancel</Button>
+                            <Button type="submit" appearance="primary" onClick={handleContinue}>Yes</Button>
+                        </DialogActions>
+                    </DialogBody>
+                )}
+                {!showForm && (
+                    <DialogBody>
+                        <DialogTitle tabIndex={0}>{stageLabel(video)}</DialogTitle>
+                        <DialogContent tabIndex={0}>
+                            {!processingError && video.stage !== "synthesizing" && <ProgressBar />}
+                            {!processingError && video.stage === "synthesizing" && (
+                                <Field
+                                    validationMessage={`Audio files generated: ${video.audioGenerated} of ${video.descriptions.length}`}
+                                    validationState="none">
+                                    <ProgressBar
+                                        max={video.descriptions.length}
+                                        value={video.audioGenerated} />
+                                </Field>
+                            )}
+                            {processingError && <p style={{ color: "red" }}>{processingError}</p>}
+                        </DialogContent>
+                        <DialogActions>
+                            <Button appearance="secondary" onClick={() => setOpenProcessDialog(false)}>Close</Button>
+                        </DialogActions>
+                    </DialogBody>
+                )}
+            </DialogSurface>
+        </Dialog>
+    );
+};
