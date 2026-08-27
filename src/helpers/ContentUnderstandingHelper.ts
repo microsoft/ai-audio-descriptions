@@ -1,5 +1,5 @@
 import axios from "axios";
-import { aiServicesResource, aiServicesKey, gptDeployment } from "../keys";
+import { config } from "../config";
 import { delay, msToTime } from "./Helper";
 import { Segment } from "../Models";
 import { AnalyzerContent, AnalyzerResults, AudioVisualContent } from "../ContentUnderstandingModels";
@@ -35,14 +35,14 @@ interface SubmitAnalyzeResult {
 export const createAnalyzeFileTask = async (videoUrl: string): Promise<SubmitAnalyzeResult> => {
   const url = `${cuBaseUrl()}/analyzers/${VIDEO_ANALYZER_ID}:analyze?api-version=${CU_API_VERSION}`;
   const data = { inputs: [{ url: videoUrl }] };
-  const config = {
+  const requestConfig = {
     headers: {
-      "Ocp-Apim-Subscription-Key": aiServicesKey,
+      "Ocp-Apim-Subscription-Key": config.foundry.key,
       "Content-Type": "application/json",
       "x-ms-useragent": "ai-audio-descriptions/1.0",
     },
   };
-  const result = await axios.post(url, data, config);
+  const result = await axios.post(url, data, requestConfig);
   const operationLocation = result.headers["operation-location"]?.toString() ?? "";
   if (!operationLocation) {
     throw new Error("Content Understanding analyze response did not include an Operation-Location header.");
@@ -53,13 +53,13 @@ export const createAnalyzeFileTask = async (videoUrl: string): Promise<SubmitAna
 
 // Poll the operation URL returned by createAnalyzeFileTask.
 export const getAnalyzeTaskInProgress = async (operationLocation: string): Promise<AnalyzerResults> => {
-  const config = {
+  const requestConfig = {
     headers: {
-      "Ocp-Apim-Subscription-Key": aiServicesKey,
+      "Ocp-Apim-Subscription-Key": config.foundry.key,
       "x-ms-useragent": "ai-audio-descriptions/1.0",
     },
   };
-  const result = await axios.get(operationLocation, config);
+  const result = await axios.get(operationLocation, requestConfig);
   return result.data as AnalyzerResults;
 };
 
@@ -203,7 +203,7 @@ const pickKeyframes = (allFrameTimesMs: number[]): number[] => {
 const getKeyframeDataUrl = async (operationId: string, frameTimeMs: number): Promise<string> => {
   const url = `${cuBaseUrl()}/analyzerResults/${operationId}/files/keyframes/${frameTimeMs}?api-version=${CU_API_VERSION}`;
   const response = await axios.get(url, {
-    headers: { "Ocp-Apim-Subscription-Key": aiServicesKey },
+    headers: { "Ocp-Apim-Subscription-Key": config.foundry.key },
     responseType: "arraybuffer",
   });
   const mime = (response.headers["content-type"] as string | undefined) ?? "image/jpeg";
@@ -272,15 +272,15 @@ const getAdDescription = async (req: AdRequest): Promise<string> => {
     max_tokens: 4096,
   };
 
-  const url = `https://${aiServicesResource}.openai.azure.com/openai/deployments/${gptDeployment}/chat/completions?api-version=${AOAI_API_VERSION}`;
-  const config = {
+  const url = `${config.foundry.openAiEndpoint}/openai/deployments/${config.foundry.gptDeployment}/chat/completions?api-version=${AOAI_API_VERSION}`;
+  const requestConfig = {
     headers: {
       "Content-Type": "application/json",
-      "api-key": aiServicesKey,
+      "api-key": config.foundry.key,
     },
   };
   try {
-    const result = await axios.post(url, data, config);
+    const result = await axios.post(url, data, requestConfig);
     return result.data.choices[0].message.content ?? "";
   } catch (error: unknown) {
     const status = (error as { response?: { status?: number } })?.response?.status;
@@ -293,4 +293,4 @@ const getAdDescription = async (req: AdRequest): Promise<string> => {
   }
 };
 
-const cuBaseUrl = (): string => `https://${aiServicesResource}.cognitiveservices.azure.com/contentunderstanding`;
+const cuBaseUrl = (): string => config.foundry.contentUnderstandingEndpoint;

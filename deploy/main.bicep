@@ -14,14 +14,14 @@ param location string = 'eastus2'
 @description('Name prefix for all resources')
 param namePrefix string = 'aiad'
 
-// Unique suffix ensures globally unique resource names (required for storage accounts and AI services custom domains)
+// Unique suffix ensures globally unique resource names for storage and Foundry.
 @description('Unique suffix for resource names')
 param uniqueSuffix string = uniqueString(subscription().subscriptionId, resourceGroupName)
 
-resource aiServices 'Microsoft.CognitiveServices/accounts@2025-01-01' = {
+resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   name: '${namePrefix}-ai-${uniqueSuffix}'
   location: location
-  kind: 'CognitiveServices'
+  kind: 'AIServices'
   sku: {
     name: 'S0'
   }
@@ -30,17 +30,18 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2025-01-01' = {
   }
 }
 
-resource gptDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-01-01' = {
-  parent: aiServices
+resource gptDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+  parent: foundry
   name: 'gpt-5.5'
   properties: {
     model: {
       format: 'OpenAI'
       name: 'gpt-5.5'
+      version: '2026-04-24'
     }
   }
   sku: {
-    name: 'Standard'
+    name: 'GlobalStandard'
     capacity: 30
   }
 }
@@ -96,8 +97,8 @@ resource audioDescriptionContainer 'Microsoft.Storage/storageAccounts/blobServic
 }
 
 // Output values for configuration
-output aiServicesName string = aiServices.name
-output aiServicesRegion string = location
+output foundryName string = foundry.name
+output foundrySpeechEndpoint string = 'wss://${location}.tts.speech.microsoft.com'
 output storageAccountName string = storageAccount.name
 output gptDeploymentName string = gptDeployment.name
 output resourceGroupName string = resourceGroupName

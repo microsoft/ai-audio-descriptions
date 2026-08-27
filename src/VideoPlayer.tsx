@@ -8,7 +8,7 @@ import { loadAudioFilesIntoMemory } from "./helpers/TtsHelper";
 import { ProcessVideoDialog } from "./ProcessVideoDialog";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
-import { blobSasToken, blobUri, STORAGE_CONTAINER_NAME } from "./keys";
+import { config } from "./config";
 import { deleteBlobWithPrefix, getUploadedVideos } from "./helpers/BlobHelper";
 import DeleteVideoDialog from "./DeleteVideoDialog";
 
@@ -138,7 +138,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props: VideoPlayerProps)
         await ffmpeg.writeFile('video.mp4', await fetchFile(videoUrl));
         ffmpegParams.push("-i", "video.mp4");
 
-        const fetchFilePromises = props.scenes.map((_, i) => fetchFile(`${blobUri}/${STORAGE_CONTAINER_NAME}/${props.title}/${props.title}_${i}.wav?${blobSasToken}`));
+        const fetchFilePromises = props.scenes.map((_, i) =>
+            fetchFile(`${config.storage.blobUri}/${config.storage.container}/${props.title}/${props.title}_${i}.wav?${config.storage.sasToken}`)
+        );
         const fetchedFiles = await Promise.all(fetchFilePromises);
         const ffmpegWriteAudioPromises = props.scenes.map((_, i) => {
             ffmpegParams.push("-i", `audio_${i}.wav`);

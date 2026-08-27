@@ -1,12 +1,12 @@
 import { BlobServiceClient, BlockBlobParallelUploadOptions } from "@azure/storage-blob";
-import { blobSasToken, blobUri, STORAGE_CONTAINER_NAME } from "../keys";
+import { config } from "../config";
 import { SavedVideoResult } from "../Models";
 
-const blobServiceClient = new BlobServiceClient(`${blobUri}?${blobSasToken}`);
+const blobServiceClient = new BlobServiceClient(`${config.storage.blobUri}?${config.storage.sasToken}`);
 
 export const uploadToBlob = async (file: any, directory: string, filename: string, setUploadPercentage: any): Promise<string> => {
     const blobName = directory + "/" + filename;
-    const containerClient = await blobServiceClient.getContainerClient(STORAGE_CONTAINER_NAME);
+    const containerClient = await blobServiceClient.getContainerClient(config.storage.container);
     const blobClient = await containerClient.getBlockBlobClient(blobName);
     const options: BlockBlobParallelUploadOptions = {
         blockSize: 4 * 1024 * 1024,
@@ -22,8 +22,8 @@ export const uploadToBlob = async (file: any, directory: string, filename: strin
 }
 
 export const getUploadedVideos = async (listOptions?: any): Promise<SavedVideoResult[]> => {
-    const containerClient = await blobServiceClient.getContainerClient(STORAGE_CONTAINER_NAME);
-    const blobContainerUrl = blobUri + '/' + STORAGE_CONTAINER_NAME;
+    const containerClient = await blobServiceClient.getContainerClient(config.storage.container);
+    const blobContainerUrl = `${config.storage.blobUri}/${config.storage.container}`;
     const blobGroups: { [key: string]: SavedVideoResult } = {};
     for await (const blob of containerClient.listBlobsFlat(listOptions)) {
         const parts = blob.name.split('/');
@@ -40,13 +40,13 @@ export const getUploadedVideos = async (listOptions?: any): Promise<SavedVideoRe
             };
         }
         if (blob.name.endsWith('.mp4')) {
-            blobGroups[key].videoUrl = blobContainerUrl + '/' + parts[0] + '/' + parts[0] + '.mp4?' + blobSasToken;
+            blobGroups[key].videoUrl = `${blobContainerUrl}/${parts[0]}/${parts[0]}.mp4?${config.storage.sasToken}`;
         }
         else if (blob.name.endsWith('details.json')) {
-            blobGroups[key].detailsJsonUrl = blobContainerUrl + '/' + parts[0] + '/details.json?' + blobSasToken;
+            blobGroups[key].detailsJsonUrl = `${blobContainerUrl}/${parts[0]}/details.json?${config.storage.sasToken}`;
         }
         else if (blob.name.endsWith('.json')) {
-            blobGroups[key].audioDescriptionJsonUrl = blobContainerUrl + '/' + parts[0] + '/' + parts[0] + '.json?' + blobSasToken;
+            blobGroups[key].audioDescriptionJsonUrl = `${blobContainerUrl}/${parts[0]}/${parts[0]}.json?${config.storage.sasToken}`;
         }
     }
     const allValues = Object.values(blobGroups);
@@ -54,7 +54,7 @@ export const getUploadedVideos = async (listOptions?: any): Promise<SavedVideoRe
 }
 
 export const deleteBlobWithPrefix = async (prefix: string) => {
-    const containerClient = await blobServiceClient.getContainerClient(STORAGE_CONTAINER_NAME);
+    const containerClient = await blobServiceClient.getContainerClient(config.storage.container);
     for await (const blob of containerClient.listBlobsFlat()) {
         if (blob.name.startsWith(`${prefix}/`)) {
             await containerClient.deleteBlob(blob.name);

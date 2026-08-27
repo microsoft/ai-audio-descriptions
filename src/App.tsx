@@ -4,7 +4,7 @@ import { SavedVideoResult, Segment } from './Models';
 import { DescriptionTable } from './DescriptionTable';
 import { VideoPlayer } from './VideoPlayer';
 import { getUploadedVideos } from './helpers/BlobHelper';
-import { MissingKeys } from './MissingKeys';
+import { MissingConfiguration } from './MissingConfiguration';
 
 function App() {
     const [scenes, setScenes] = React.useState<Segment[]>([]);
@@ -44,7 +44,7 @@ function App() {
             <h1>Microsoft AI Audio Descriptions</h1>
             <div className="container">
                 <div className='half'>
-                    <MissingKeys />
+                    <MissingConfiguration />
                     <VideoPlayer
                         scenes={scenes}
                         setScenes={setScenes}

@@ -1,5 +1,5 @@
 import * as SpeechSdk from "microsoft-cognitiveservices-speech-sdk";
-import { blobUri, blobSasToken, STORAGE_CONTAINER_NAME, aiServicesRegion, aiServicesKey } from "../keys";
+import { config } from "../config";
 import { Segment } from "../Models";
 import { uploadToBlob } from "./BlobHelper";
 
@@ -12,7 +12,10 @@ import { uploadToBlob } from "./BlobHelper";
 const TTS_VOICE = "en-US-Ava:DragonHDOmniLatestNeural";
 
 export const generateAudioFiles = async (scenes: Segment[], directory: string, setNumberOfAudioFilesGenerated: any) => {
-    const speechConfig: SpeechSdk.SpeechConfig = SpeechSdk.SpeechConfig.fromSubscription(aiServicesKey, aiServicesRegion);
+    const speechConfig = SpeechSdk.SpeechConfig.fromEndpoint(
+        new URL(config.foundry.speechEndpoint),
+        config.foundry.key
+    );
     speechConfig.speechSynthesisVoiceName = TTS_VOICE;
     for (let i = 0; i < scenes.length; i++) {
         const fileName = `${directory}_${i}.wav`;
@@ -42,7 +45,7 @@ export const loadAudioFilesIntoMemory = async (title: string, audioDescriptions:
         });
     }
     const urls = audioDescriptions.map((_, i) => {
-        return `${blobUri}/${STORAGE_CONTAINER_NAME}/${title}/${title}_${i}.wav?${blobSasToken}`;
+        return `${config.storage.blobUri}/${config.storage.container}/${title}/${title}_${i}.wav?${config.storage.sasToken}`;
     });
     const promises = urls.map(url => preloadAudio(url));
     try {
