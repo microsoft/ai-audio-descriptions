@@ -46,7 +46,13 @@ export interface ProcessVideoDialogProps {
 }
 
 export type VideoStatus = "uploaded" | "processing" | "ready" | "failed";
-export type ProcessingStage = "analyzing" | "describing" | "synthesizing";
+export type ProcessingStage =
+    | "preparing"
+    | "transcribing"
+    | "detecting_shots"
+    | "describing"
+    | "writing_vtt"
+    | "synthesizing";
 
 export interface VideoSummary {
     id: string;
@@ -55,8 +61,6 @@ export interface VideoSummary {
 }
 
 export interface VideoResource extends VideoSummary {
-    metadata: string;
-    narrationStyle: string;
     videoUrl: string;
     audioUrls: string[];
     descriptions: Segment[];
@@ -69,9 +73,4 @@ export interface Segment {
     startTime: string;
     endTime: string;
     description: string;
-}
-
-export interface CreateVideoResult {
-    video: VideoResource;
-    uploadUrl: string;
 }

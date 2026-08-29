@@ -32,4 +32,3 @@ output AZURE_RESOURCE_GROUP string = resourceGroup.name
 output FOUNDRY_RESOURCE string = resources.outputs.FOUNDRY_RESOURCE
 output FOUNDRY_RESOURCE_ID string = resources.outputs.FOUNDRY_RESOURCE_ID
 output GPT_DEPLOYMENT string = resources.outputs.GPT_DEPLOYMENT
-output STORAGE_ACCOUNT string = resources.outputs.STORAGE_ACCOUNT

@@ -30,14 +30,4 @@ export default tseslint.config(
       ],
     },
   },
-  {
-    files: ['server/**/*.ts'],
-    languageOptions: {
-      globals: globals.node,
-    },
-    rules: {
-      'react-hooks/rules-of-hooks': 'off',
-      'react-refresh/only-export-components': 'off',
-    },
-  },
 )

@@ -1,84 +1,148 @@
 # AI Audio Descriptions
 
-## Introduction
+AI Audio Descriptions generates an editable audio-description draft for an MP4,
+then renders the reviewed draft into a new audio-described video.
 
-Audio Description is a technique for describing what is happening during a video, to benefit audience members who are blind or have low vision. This generally takes the form of a second audio track, and is available on TV, streaming services, and at movie theaters. The narration is timed to fit within silent parts of the video, so it doesn't overlap the dialog, and does not increase the length of the program (as would be the case if the video was paused to provide a description).
+The project has three parts:
 
-This project leverages Artificial Intelligence to assist in the process of generating the Audio Description track. First, a description is generated for each scene, along with a transcript of the dialog. Silences are then identified, and the descriptions rewritten to fit in the gaps. This is presented to the human AD editor as a draft to review and update. Once the script is finalized, the video can be downloaded with Audio Descriptions inserted using Text-To-Speech.
+- `engine/` contains the reusable Python generation and rendering logic.
+- `cli/` provides command-line GenerateAD and RenderAD tools.
+- `studio/` provides a browser-based editor backed by the same engine.
 
-We hope that making the AD authoring process faster, and thus less expensive, will result in more inclusive content being created. Providing content with AD tracks is a legal requirement in several countries, and this will also help media companies meet these requirements.
+## How it works
 
-We'd love to hear what you think. Especially if you deploy this solution within your organization. Email [aiad@microsoft.com](mailto:aiad@microsoft.com).
+GenerateAD converts an MP4 into a WebVTT draft. Each cue covers an available
+narration window and contains a proposed description.
 
-## Examples
+RenderAD converts the source MP4 and reviewed WebVTT into an audio-described MP4.
+It synthesizes each cue, fits it within its narration window, ducks the source
+audio, and mixes the final track.
 
-https://github.com/user-attachments/assets/c880afc3-1b5a-403b-9610-0503bccbd21c
- 
-https://github.com/user-attachments/assets/e724070a-bca9-417a-8f08-85c5e30779f7
- 
-## Try It Yourself
+Studio adds upload, progress, editing, synchronized cue previews, and final
+download. Videos and drafts are stored locally under `data/`.
 
-We are providing this solution as open source to enable content creators to incorporate it into their workflows. The web app allows uploading of MP4 videos, having the draft AD script generated, editing the script, and generating a new video file with the audio description inserted.
+## Prerequisites
 
-While we provide an end-to-end user experience, aspects such as hosting, authentication and authorization will differ customer-to-customer.
+- Python
+- Node.js 20.19 or later
+- FFmpeg and FFprobe on `PATH`
+- Azure Developer CLI for automated Azure provisioning
+- A Microsoft Foundry resource with Speech and a GPT deployment
 
-The below details will enable a developer to run the solution on their dev box.
+## Provision Azure resources
 
-### Setup Azure
-
-The app needs:
-
-- A Microsoft Foundry resource for Content Understanding, GPT, and Speech, with a GPT 5 deployment.
-- An Azure Storage account with an `audio-description` blob container and CORS enabled for local development.
-- Microsoft Entra access to the Foundry and Storage resources.
-- A `.env` file containing the non-secret resource configuration used by the local API.
-
-You can create and configure these manually, or use the included Azure Developer CLI configuration to automate the complete setup.
-
-#### Prerequisites
-
-- Azure subscription ([get a free one here](https://azure.microsoft.com/free))
-- [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)
-- [Node.js](https://nodejs.org/) 20.19 or later
-
-#### Provision
-
-1. Sign in to Azure:
-
-   ```shell
-   azd auth login
-   ```
-
-2. Provision the resources:
-
-   ```shell
-   azd provision
-   ```
-
-The first provision prompts for an environment name, subscription, and location. It then creates and configures the Foundry and Storage resources, grants the signed-in developer access, and writes the required `.env` file. Creating the role assignments requires Owner or User Access Administrator access to the subscription.
-
-**Cost Warning:** ⚠️ The created resources will incur Azure costs. Monitor your usage in the Azure Portal to avoid unexpected charges.
-
-### Run the App
-
-* In the project directory, run `npm install` to install required packages.
-* Run `npm run dev` to run the web app and its local API.
-* The URL, such as [http://localhost:5173], will be displayed in the terminal. Visit that URL in your browser to view the app.
-
-### Cleanup Azure Resources
-
-To remove the resources in the active Azure Developer CLI environment, run:
+Sign in and provision the Foundry resource:
 
 ```shell
-azd down
+azd auth login
+azd provision
 ```
 
-⚠️ **Warning**: This will permanently delete all resources and data!
+Provisioning writes these non-secret values to `.env`:
 
-## Contributions Welcome
+```text
+FOUNDRY_RESOURCE
+FOUNDRY_RESOURCE_ID
+GPT_DEPLOYMENT
+```
 
-This is just the beginning. We have several ideas for improvements, and the AI keeps improving. If you have ideas, or code contributions, we'd love to hear from you.
+The application uses `DefaultAzureCredential`. For local development, ensure
+your signed-in identity can use the provisioned Foundry resource.
 
-## See Also
+Azure resources incur usage charges. Run `azd down` when you no longer need the
+provisioned environment.
 
-This project is brought to you by the team behind [Seeing AI - a visual assistant for the blind community](https://SeeingAi.com/).
+## Install
+
+Create and activate a Python virtual environment, then install the shared
+dependencies:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+Install the Studio frontend:
+
+```powershell
+Set-Location studio\web
+npm install
+```
+
+## Run Studio for development
+
+From `studio\web`:
+
+```shell
+npm run dev
+```
+
+This starts:
+
+- the Python API at `http://127.0.0.1:3001`;
+- Vite at the URL printed in the terminal, normally
+  `http://localhost:5173`.
+
+Vite proxies `/api` requests to the Python server.
+
+## Run the built Studio
+
+Build the frontend:
+
+```powershell
+Set-Location studio\web
+npm run build
+Set-Location ..\..
+```
+
+Run the Python server:
+
+```shell
+python -m studio.server
+```
+
+Open `http://127.0.0.1:3001`.
+
+## Command-line tools
+
+Generate a draft:
+
+```shell
+python -m cli.generate_ad input.mp4 output.vtt
+```
+
+Render a reviewed draft:
+
+```shell
+python -m cli.render_ad input.mp4 output.vtt output.mp4
+```
+
+The CLI reads the same Foundry configuration from the environment.
+
+## Local data
+
+Studio stores each uploaded video, draft, preview audio, processing state, and
+rendered outputs beneath `data/`. Deleting a video in Studio deletes its local
+directory.
+
+Preview audio is cached by text and voice within each video. Saving unchanged
+descriptions therefore avoids repeated Speech synthesis. Final rendered videos
+are reused until the VTT changes.
+
+This version intentionally runs as one local server process using local files.
+It does not provide authentication, multi-server coordination, or shared cloud
+storage. Bind it to localhost unless you add the security and deployment controls
+appropriate for your environment.
+
+## Contributing
+
+The project is intended to support audio-description research and practical
+experimentation. Contributions that improve description quality, editing, media
+handling, evaluation, and accessibility are welcome.
+
+## See also
+
+This project is from the team behind
+[Seeing AI](https://www.seeingai.com/), a visual assistant for people who are
+blind or have low vision.

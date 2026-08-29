@@ -1,6 +1,6 @@
 import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Input, Label, ProgressBar, makeStyles } from "@fluentui/react-components"
 import { UploadDialogProps } from "./Models";
-import { completeVideoUpload, createVideo, uploadVideo } from "./api";
+import { uploadVideo } from "./api";
 import React, { useState } from "react";
 
 const useStyles = makeStyles({
@@ -19,22 +19,12 @@ export const UploadVideoDialog = (props: UploadDialogProps) => {
     const [uploadPercentage, setUploadPercentage] = useState(0);
     const [file, setFile] = useState<File>();
     const [uploadErrorMessage, setUploadErrorMessage] = useState('');
-    const [metaData, setMetaData] = useState("");
-    const [narrationStyle, setNarrationStyle] = useState("");
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         setFile(event.target.files![0]);
     };
 
     const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setTitle(event.target.value);
-    }
-
-    const handleMetadataChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setMetaData(event.target.value);
-    }
-
-    const handleNarrationStyleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setNarrationStyle(event.target.value);
     }
 
     const resetFormState = () => {
@@ -60,22 +50,13 @@ export const UploadVideoDialog = (props: UploadDialogProps) => {
         setShowForm(false);
         setUploading(true);
         try {
-            const result = await createVideo(title, metaData, narrationStyle);
-            await uploadVideo(result.uploadUrl, file, setUploadPercentage);
-            const video = await completeVideoUpload(
-                result.video.id,
-                title,
-                metaData,
-                narrationStyle,
-            );
+            const video = await uploadVideo(title, file, setUploadPercentage);
             props.onVideoUploaded(video);
         }
-        catch (e: any) {
-            let errorMessage = "Failed to upload."
-            if (e.statusCode === 401) {
-                errorMessage += " Authentication failed."
-            }
-            setUploadErrorMessage(errorMessage);
+        catch (error) {
+            setUploadErrorMessage(
+                error instanceof Error ? error.message : "Failed to upload.",
+            );
             return;
         }
         setUploading(false);
@@ -101,14 +82,6 @@ export const UploadVideoDialog = (props: UploadDialogProps) => {
                             Title (a friendly name/title for the file without extension)
                         </Label>
                         <Input required type="text" id={"file-name"} onChange={handleTitleChange} />
-                        <Label htmlFor={"file-metadata"}>
-                            Context (optional) - Provide any additional informaiton about the video, such as key characters, places, or events
-                        </Label>
-                        <Input type="text" id={"file-metadata"} onChange={handleMetadataChange} />
-                        <Label htmlFor={"narration-style"}>
-                            Narration style (optional) - such as age of target audience, or things not to mention
-                        </Label>
-                        <Input type="text" id={"narration-style"} onChange={handleNarrationStyleChange} defaultValue={narrationStyle} />
                     </DialogContent>
                     <DialogActions>
                         <Button appearance="secondary" onClick={() => props.onVideoUploadCancelled()}>Cancel</Button>

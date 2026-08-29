@@ -4,7 +4,6 @@ const variableNames = [
     "FOUNDRY_RESOURCE",
     "FOUNDRY_RESOURCE_ID",
     "GPT_DEPLOYMENT",
-    "STORAGE_ACCOUNT",
 ];
 
 const missingVariables = variableNames.filter((name) => !process.env[name]);

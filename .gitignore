@@ -1,29 +1,29 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# Python
+.venv/
+__pycache__/
+*.py[cod]
 
-node_modules
-dist
-dist-ssr
-*.local
+# Node
+node_modules/
+dist/
 *.tsbuildinfo
+npm-debug.log*
 
-# Editor directories and files
+# Local configuration and runtime data
+.env
+.azure/
+data/
+logs/
+*.log
+*.local
+
+# Editors and operating systems
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# misc
-.env
-.azure
