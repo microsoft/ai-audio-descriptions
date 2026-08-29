@@ -3,6 +3,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import type { Segment } from "../src/Models";
 import { config } from "./config";
 import { prepareVideo, processVideo, updateDescriptions } from "./pipeline";
+import { renderVideo } from "./renderPipeline";
 import {
   createVideo,
   deleteVideo,
@@ -107,6 +108,27 @@ app.put("/api/videos/:id/descriptions", async (request, response, next) => {
     }
     await updateDescriptions(request.params.id, descriptions);
     response.json(await getVideo(request.params.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/videos/:id/render", async (request, response, next) => {
+  try {
+    if (!await videoExists(request.params.id)) {
+      response.status(404).json({ error: "Video not found." });
+      return;
+    }
+    const rendered = await renderVideo(request.params.id);
+    response.download(rendered.path, rendered.fileName, (error) => {
+      void rendered.cleanup().catch((cleanupError) => {
+        console.error(`Unable to clean up rendered video ${request.params.id}:`, cleanupError);
+      }).then(() => {
+        if (error) {
+          next(error);
+        }
+      });
+    });
   } catch (error) {
     next(error);
   }

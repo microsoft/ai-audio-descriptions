@@ -9,9 +9,7 @@ import {
     Field,
     ProgressBar,
 } from "@fluentui/react-components";
-import { FFmpeg } from "@ffmpeg/ffmpeg";
-import { fetchFile, toBlobURL } from "@ffmpeg/util";
-import { deleteVideo, getVideo } from "./api";
+import { deleteVideo, getVideo, renderVideo } from "./api";
 import DeleteVideoDialog from "./DeleteVideoDialog";
 import { timeToSeconds } from "./helpers/Helper";
 import { loadAudioFilesIntoMemory } from "./helpers/TtsHelper";
@@ -45,7 +43,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props) => {
     const [continueWithoutAsking, setContinueWithoutAsking] = React.useState(false);
     const [videos, setVideos] = React.useState<VideoSummary[]>([]);
 
-    const ffmpeg = new FFmpeg();
     const playerRef = React.useRef<HTMLVideoElement>(null);
 
     const resetState = React.useCallback(() => {
@@ -133,45 +130,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props) => {
     };
 
     const download = async () => {
+        if (!selectedVideo) {
+            return;
+        }
         setIsPreparingForDownload(true);
-        const baseUrl = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
-        await ffmpeg.load({
-            coreURL: await toBlobURL(`${baseUrl}/ffmpeg-core.js`, "text/javascript"),
-            wasmURL: await toBlobURL(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm"),
-        });
-        const ffmpegParams = [];
-        await ffmpeg.writeFile("video.mp4", await fetchFile(videoUrl));
-        ffmpegParams.push("-i", "video.mp4");
-
-        const fetchedFiles = await Promise.all(
-            props.audioObjects.map(audio => fetchFile(audio.src)),
-        );
-        await Promise.all(fetchedFiles.map((audio, index) => {
-            ffmpegParams.push("-i", `audio_${index}.wav`);
-            return ffmpeg.writeFile(`audio_${index}.wav`, audio);
-        }));
-
-        let delayedAudio = "";
-        let mixedAudio = "[0]";
-        props.scenes.forEach((scene, index) => {
-            const delayMs = timeToSeconds(scene.startTime) * 1000;
-            delayedAudio += `[${index + 1}]adelay=${delayMs}|${delayMs}[a${index}];`;
-            mixedAudio += `[a${index}]`;
-        });
-        mixedAudio += `amix=${props.scenes.length + 1}`;
-
-        ffmpegParams.push("-filter_complex", delayedAudio + mixedAudio);
-        ffmpegParams.push("-c:v", "copy", "output.mp4");
-        await ffmpeg.exec(ffmpegParams);
-
         try {
-            const data = await ffmpeg.readFile("output.mp4");
+            const data = await renderVideo(selectedVideo.id);
+            const url = URL.createObjectURL(data);
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([data as BlobPart], { type: "video/mp4" }));
+            link.href = url;
             link.download = `${props.title}_output.mp4`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         } finally {
             setIsPreparingForDownload(false);
         }
@@ -325,7 +297,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props) => {
                         <Button
                             appearance="primary"
                             onClick={download}
-                            disabled={props.scenes.length === 0}>
+                            disabled={props.scenes.length === 0 || !selectedVideo}>
                             Download
                         </Button>
                     </div>

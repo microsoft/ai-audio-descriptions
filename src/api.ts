@@ -72,5 +72,16 @@ export const updateVideoDescriptions = (
         body: JSON.stringify({ descriptions }),
     });
 
+export const renderVideo = async (id: string): Promise<Blob> => {
+    const response = await fetch(`/api/videos/${encodeURIComponent(id)}/render`, {
+        method: "POST",
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => undefined) as { error?: string } | undefined;
+        throw new Error(body?.error ?? `Request failed with status ${response.status}.`);
+    }
+    return response.blob();
+};
+
 export const deleteVideo = (id: string): Promise<void> =>
     request(`/api/videos/${encodeURIComponent(id)}`, { method: "DELETE" });

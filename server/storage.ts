@@ -195,6 +195,25 @@ export const getAudioContentUrl = async (
   return createBlobUrl(audioBlobName(id, index), "r", startsOn, expiresOn, key);
 };
 
+export const downloadVideo = async (
+  id: string,
+  destinationPath: string,
+): Promise<void> => {
+  await containerClient
+    .getBlockBlobClient(videoBlobName(id))
+    .downloadToFile(destinationPath);
+};
+
+export const downloadAudio = async (
+  id: string,
+  index: number,
+  destinationPath: string,
+): Promise<void> => {
+  await containerClient
+    .getBlockBlobClient(audioBlobName(id, index))
+    .downloadToFile(destinationPath);
+};
+
 export const videoExists = async (id: string): Promise<boolean> =>
   blobExists(videoBlobName(id));
 
