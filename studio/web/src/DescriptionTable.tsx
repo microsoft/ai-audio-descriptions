@@ -25,8 +25,8 @@ export const DescriptionTable: React.FC<DescriptionTableProps> = (props) => {
     const handleAdd = () => {
         handleEdit();
         const newRow: Segment = {
-            startTime: "00:00:00",
-            endTime: "00:00:00",
+            startTime: "00:00:00.000",
+            endTime: "00:00:00.000",
             description: ""
         };
         setRows([newRow, ...rows]);
@@ -100,14 +100,14 @@ export const DescriptionTable: React.FC<DescriptionTableProps> = (props) => {
                         <DialogSurface>
                             <DialogBody>
                                 {showAudioGenerateSpinner && (<>
-                                    <DialogTitle>{"Regenerating audio files..."}</DialogTitle>
+                                    <DialogTitle>{"Saving descriptions..."}</DialogTitle>
                                     <DialogContent>
                                         <ProgressBar />
                                     </DialogContent>
                                 </>)}
                                 {!showAudioGenerateSpinner && (<>
                                     <DialogTitle>{"Confirm Save"}</DialogTitle>
-                                    <DialogContent>Are you sure you want to save the changes? This will regenerate all audio files.</DialogContent>
+                                    <DialogContent>Save these changes and update the audio previews?</DialogContent>
                                     {saveError && <DialogContent style={{ color: "red" }}>{saveError}</DialogContent>}
                                     <DialogActions>
                                         <Button onClick={handleSaveYes} appearance="primary">Yes</Button>
@@ -145,8 +145,8 @@ export const DescriptionTable: React.FC<DescriptionTableProps> = (props) => {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHeaderCell tabIndex={0}>Start time (s)</TableHeaderCell>
-                                            <TableHeaderCell tabIndex={0}>End time (s)</TableHeaderCell>
+                                            <TableHeaderCell tabIndex={0}>Start time</TableHeaderCell>
+                                            <TableHeaderCell tabIndex={0}>End time</TableHeaderCell>
                                             <TableHeaderCell tabIndex={0}>Description</TableHeaderCell>
                                             {isEdit && <TableHeaderCell tabIndex={0}>Action</TableHeaderCell>}
                                         </TableRow>
@@ -158,10 +158,10 @@ export const DescriptionTable: React.FC<DescriptionTableProps> = (props) => {
                                                     {isEdit ? (
                                                         <>
                                                             <TableCell>
-                                                                <input name="startTime" value={row.startTime} size={10} onChange={(e) => handleInputChange(e, i)} />
+                                                                <input name="startTime" value={row.startTime} size={12} onChange={(e) => handleInputChange(e, i)} />
                                                             </TableCell>
                                                             <TableCell>
-                                                                <input name="endTime" value={row.endTime} size={10} onChange={(e) => handleInputChange(e, i)} />
+                                                                <input name="endTime" value={row.endTime} size={12} onChange={(e) => handleInputChange(e, i)} />
                                                             </TableCell>
                                                             <TableCell>
                                                                 <textarea name="description" cols={30} rows={row.description.length / 30 + 1} value={row.description} onChange={(e) => handleInputChange(e, i)} />

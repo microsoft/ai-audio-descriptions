@@ -15,13 +15,19 @@ import { ProcessVideoDialogProps, VideoResource } from "./Models";
 import { loadAudioFilesIntoMemory } from "./helpers/TtsHelper";
 
 const stageLabel = (video: VideoResource): string => {
+    if (video.stage === "transcribing") {
+        return "Transcribing dialogue";
+    }
+    if (video.stage === "detecting_shots") {
+        return "Detecting shots";
+    }
     if (video.stage === "describing") {
         return "Writing audio descriptions";
     }
     if (video.stage === "synthesizing") {
         return "Generating audio";
     }
-    return "Analyzing video";
+    return "Preparing video";
 };
 
 export const ProcessVideoDialog = (props: ProcessVideoDialogProps) => {
@@ -78,7 +84,7 @@ export const ProcessVideoDialog = (props: ProcessVideoDialogProps) => {
         setProcessingError("");
         try {
             await startVideoProcessing(video.id);
-            const processingVideo = { ...video, status: "processing", stage: "analyzing" } as VideoResource;
+            const processingVideo = { ...video, status: "processing", stage: "preparing" } as VideoResource;
             setVideo(processingVideo);
             onVideoChanged(processingVideo);
             await monitorProcessing();
