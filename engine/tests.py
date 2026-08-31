@@ -3,8 +3,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import numpy as np
+
 from engine import ad
 from engine import ffmpeg
+from engine import separation
 from engine import speech as speech_module
 from engine import vtt
 
@@ -339,6 +342,124 @@ class FFmpegTests(unittest.TestCase):
             command = run.call_args.args[0]
             self.assertIn("-filter_complex", command)
             self.assertEqual(command.count("-i"), 4)
+
+
+class SeparationTests(unittest.TestCase):
+    def test_alignment_finds_sample_offset_with_added_narration(self):
+        sample_rate = 2000
+        rng = np.random.default_rng(7)
+        reference = rng.normal(
+            0,
+            0.1,
+            (sample_rate * 8, 2),
+        ).astype(np.float32)
+        shift = 37
+        described = np.zeros_like(reference)
+        described[shift:] = reference[:-shift] * 0.5
+        time = np.arange(sample_rate * 2) / sample_rate
+        narration = 0.08 * np.sin(2 * np.pi * 173 * time)
+        described[
+            sample_rate * 3 : sample_rate * 5,
+            :,
+        ] += narration[:, None]
+
+        actual, correlation = separation.find_alignment(
+            reference,
+            described,
+            sample_rate,
+            max_shift_seconds=0.2,
+        )
+
+        self.assertEqual(actual, shift)
+        self.assertGreater(correlation, 0.7)
+
+    def test_adaptive_subtraction_tracks_ducking(self):
+        sample_rate = 1000
+        rng = np.random.default_rng(11)
+        reference = rng.normal(
+            0,
+            0.1,
+            (sample_rate * 10, 2),
+        ).astype(np.float32)
+        gain = np.ones(len(reference), dtype=np.float32)
+        gain[sample_rate * 3 : sample_rate * 6] = 0.3
+        narration = np.zeros_like(reference)
+        time = np.arange(sample_rate * 2) / sample_rate
+        narration[
+            sample_rate * 3 + 500 : sample_rate * 5 + 500,
+            :,
+        ] = (0.08 * np.sin(2 * np.pi * 137 * time))[:, None]
+        described = reference * gain[:, None] + narration
+
+        residual = separation.adaptive_subtract(
+            reference,
+            described,
+            sample_rate,
+        )
+
+        quiet = np.concatenate(
+            (
+                residual[500:2500],
+                residual[7000:9000],
+            )
+        )
+        self.assertLess(np.sqrt(np.mean(quiet * quiet)), 0.002)
+        self.assertLess(
+            np.sqrt(
+                np.mean(
+                    (
+                        residual[4000:5000]
+                        - narration[4000:5000]
+                    )
+                    ** 2
+                )
+            ),
+            0.01,
+        )
+
+    def test_unmatched_ad_audio_is_preserved(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source.wav"
+            described_path = root / "described.wav"
+            output = root / "output.wav"
+            source.write_bytes(b"source")
+            described_path.write_bytes(b"described")
+            reference = np.ones((1000, 2), dtype=np.float32)
+            described = np.full((1200, 2), 0.25, dtype=np.float32)
+
+            with (
+                patch("engine.separation.ffmpeg.require_tools"),
+                patch(
+                    "engine.separation._probe_sample_rate",
+                    return_value=1000,
+                ),
+                patch(
+                    "engine.separation._decode_audio",
+                    side_effect=[reference, described],
+                ),
+                patch(
+                    "engine.separation.find_alignment",
+                    return_value=(0, 1.0),
+                ),
+                patch(
+                    "engine.separation.adaptive_subtract",
+                    return_value=np.zeros((1000, 2), dtype=np.float32),
+                ),
+                patch("engine.separation._encode_wav") as encode,
+            ):
+                result = separation.separate_ad(
+                    source,
+                    described_path,
+                    output,
+                )
+
+            samples = encode.call_args.args[0]
+            np.testing.assert_array_equal(
+                samples[1000:],
+                described[1000:],
+            )
+            self.assertEqual(result.uncovered_duration, 0.2)
 
 
 class FakeSpeech:

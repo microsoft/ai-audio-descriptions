@@ -46,6 +46,10 @@ RenderAD converts the source MP4 and reviewed WebVTT into an audio-described MP4
 It synthesizes each cue, fits it within its narration window, ducks the source
 audio, and mixes the final track.
 
+SeparateAD recovers an approximate narration-only WAV from matching main and
+audio-described soundtracks. It is intended for broadcaster mixes derived from
+the same synchronized program master.
+
 Studio adds upload, progress, editing, synchronized cue previews, and final
 download. Videos and drafts are stored locally under `data/`.
 
@@ -103,6 +107,12 @@ Render a reviewed draft:
 
 ```shell
 python -m cli.render_ad input.mp4 output.vtt output.mp4
+```
+
+Recover the narration stem from an existing AD mix:
+
+```shell
+python -m cli.separate_ad input.mp4 input.ad.mp4 output.ad-only.wav
 ```
 
 The CLI automatically loads the same Foundry configuration from the repository
